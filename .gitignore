@@ -5,5 +5,7 @@
 .vscode/
 
 # Build directories
-build/
 **/build/
+
+# Really big datasets
+**/assignment_2/log/*
