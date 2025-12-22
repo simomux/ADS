@@ -109,19 +109,28 @@ std::vector<pcl::PointIndices> euclideanCluster(typename pcl::PointCloud<pcl::Po
 void 
 ProcessAndRenderPointCloud (Renderer& renderer, pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud)
 {
-    // TODO: 1) Downsample the dataset 
+    // 1) Downsample the dataset 
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered(new pcl::PointCloud<pcl::PointXYZ>);
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_plane (new pcl::PointCloud<pcl::PointXYZ> ());
+
+    std::cerr << "PointCloud before filtering: " << cloud->width * cloud->height
+
+    pcl::VoxelGrid<pcl::PointXYZ> grid;
+    grid.setInputCloud (cloud);
+    grid.setLeafSize (0.1f, 0.1f, 0.1f); //this value defines how much the PC is filtered
+    grid.filter (*cloud_filtered);
+
+    std::cerr << "PointCloud after filtering: " << cloud_filtered->width * cloud_filtered->height;
 
     // 2) here we crop the points that are far away from us, in which we are not interested
     pcl::CropBox<pcl::PointXYZ> cb(true);
     cb.setInputCloud(cloud_filtered);
     cb.setMin(Eigen::Vector4f (-20, -6, -2, 1));
     cb.setMax(Eigen::Vector4f ( 30, 7, 5, 1));
-    cb.filter(*cloud_filtered); 
+    cb.filter(*cloud_filtered);
 
     // TODO: 3) Segmentation and apply RANSAC
-
+    
 
     // TODO: 4) iterate over the filtered cloud, segment and remove the planar inliers 
 
@@ -188,6 +197,19 @@ ProcessAndRenderPointCloud (Renderer& renderer, pcl::PointCloud<pcl::PointXYZ>::
 
 int main(int argc, char* argv[])
 {
+    if (argc != 2)
+    {
+        std::cerr << "Please provide path to data directory" << std::endl;
+        return -1;
+    }
+    auto filepath = argv[1];
+
+    if (not fs::exists(filepath) or not fs::is_directory(filepath))
+    {
+        std::cerr << "Invalid path" << std::endl;
+        return -1;
+    }
+
     Renderer renderer;
     renderer.InitCamera(CameraAngle::XY);
     // Clear viewer
@@ -195,7 +217,7 @@ int main(int argc, char* argv[])
 
     pcl::PointCloud<pcl::PointXYZ>::Ptr input_cloud (new pcl::PointCloud<pcl::PointXYZ>);
 
-    std::vector<boost::filesystem::path> stream(boost::filesystem::directory_iterator{"/home/thrun/Desktop/1_lidar/dataset_1"},
+    std::vector<boost::filesystem::path> stream(boost::filesystem::directory_iterator{filepath},
                                                 boost::filesystem::directory_iterator{});
 
     // sort files in ascending (chronological) order
