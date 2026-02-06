@@ -21,7 +21,7 @@
 #include "../include/tree_utilities.hpp"
 #include <boost/filesystem.hpp>
 namespace fs = boost::filesystem;
-//#define USE_PCL_LIBRARY
+//#define USE_PCL_LIBRARY       // Uncomment for using PCL's built-in functions
 using namespace lidar_obstacle_detection;
 
 typedef std::unordered_set<int> my_visited_set_t;
@@ -106,7 +106,7 @@ This function builds the clusters following a euclidean clustering approach
         + setMaxClusterSize: Max cluster size
     - Output:
         + cluster: at the end of this function we will have a set of clusters
-TODO: Complete the function
+Complete the function
 */
 std::vector<pcl::PointIndices> euclideanCluster(typename pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, my_pcl::KdTree* tree, float distanceTol, int setMinClusterSize, int setMaxClusterSize)
 {
@@ -211,8 +211,8 @@ ProcessAndRenderPointCloud (Renderer& renderer, pcl::PointCloud<pcl::PointXYZ>::
 
 
     float clusterTolerance = 0.4f;
-    int minClusterSize = 20;
-    int maxClusterSize = 50000;
+    int minClusterSize = 50;
+    int maxClusterSize = 20000;
 
     #ifdef USE_PCL_LIBRARY
         pcl::search::KdTree<pcl::PointXYZ>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZ>);
@@ -262,7 +262,7 @@ ProcessAndRenderPointCloud (Renderer& renderer, pcl::PointCloud<pcl::PointXYZ>::
         cloud_cluster->height = 1;
         cloud_cluster->is_dense = true;
 
-        renderer.RenderPointCloud(cloud,"originalCloud"+std::to_string(clusterId),colors[2]);
+        //renderer.RenderPointCloud(cloud,"originalCloud"+std::to_string(clusterId),colors[2]);
         // 7) render the cluster and plane without rendering the original cloud 
         
         renderer.RenderPointCloud(cloud_cluster, "cluster"+std::to_string(clusterId));
