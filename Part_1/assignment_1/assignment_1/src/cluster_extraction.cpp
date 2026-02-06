@@ -113,14 +113,14 @@ ProcessAndRenderPointCloud (Renderer& renderer, pcl::PointCloud<pcl::PointXYZ>::
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered(new pcl::PointCloud<pcl::PointXYZ>);
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_plane (new pcl::PointCloud<pcl::PointXYZ> ());
 
-    std::cerr << "PointCloud before filtering: " << cloud->width * cloud->height
+    std::cerr << "PC before filtering: " << cloud->size () << " data points." << std::endl;
 
     pcl::VoxelGrid<pcl::PointXYZ> grid;
     grid.setInputCloud (cloud);
-    grid.setLeafSize (0.1f, 0.1f, 0.1f); //this value defines how much the PC is filtered
+    grid.setLeafSize (0.1f, 0.1f, 0.1f); // defines how much the PC is filtered
     grid.filter (*cloud_filtered);
 
-    std::cerr << "PointCloud after filtering: " << cloud_filtered->width * cloud_filtered->height;
+    std::cerr << "PC after filtering: " << cloud_filtered->size () << " data points." << std::endl;
 
     // 2) here we crop the points that are far away from us, in which we are not interested
     pcl::CropBox<pcl::PointXYZ> cb(true);
@@ -129,22 +129,74 @@ ProcessAndRenderPointCloud (Renderer& renderer, pcl::PointCloud<pcl::PointXYZ>::
     cb.setMax(Eigen::Vector4f ( 30, 7, 5, 1));
     cb.filter(*cloud_filtered);
 
-    // TODO: 3) Segmentation and apply RANSAC
+    // 3) Segmentation and apply RANSAC
+
+    pcl::SACSegmentation<pcl::PointXYZ> seg;
+    seg.setOptimizeCoefficients (true);
+    seg.setModelType (pcl::SACMODEL_PLANE);
+    seg.setMethodType (pcl::SAC_RANSAC);
+    seg.setMaxIterations (100);
+    seg.setDistanceThreshold (0.1);
+
+    // 4) iterate over the filtered cloud, segment and remove the planar inliers 
+
+    int i = 0, nr_points = (int) cloud_filtered->size ();
+    
+    pcl::ModelCoefficients::Ptr coefficients (new pcl::ModelCoefficients ());
+    pcl::PointIndices::Ptr inliers (new pcl::PointIndices ()); 
+
+    while (cloud_filtered->size () > 0.3 * nr_points)
+    {
+        // Segment the largest planar component from the remaining cloud
+        seg.setInputCloud (cloud_filtered);
+        seg.segment (*inliers, *coefficients);
+        if (inliers->indices.size () == 0)
+        {
+            std::cout << "Could not estimate a planar model for the given dataset." << std::endl;
+            break;
+        }
+
+        // Extract the planar inliers from the input cloud
+        pcl::ExtractIndices<pcl::PointXYZ> extract;
+        extract.setInputCloud (cloud_filtered);
+        extract.setIndices (inliers);
+        extract.setNegative (false);
+
+        // Get the points associated with the planar surface
+        extract.filter (*cloud_plane);
+        std::cout << "PointCloud representing the planar component: " << cloud_plane->size () << " data points." << std::endl;
+
+        // Remove the planar inliers, extract the rest
+        extract.setNegative (true);
+        extract.filter (*cloud_filtered);
+    }
+
+
+    // 5) Create the KDTree and the vector of PointIndices
     
 
-    // TODO: 4) iterate over the filtered cloud, segment and remove the planar inliers 
 
-
-    // TODO: 5) Create the KDTree and the vector of PointIndices
-
-
-    // TODO: 6) Set the spatial tolerance for new cluster candidates (pay attention to the tolerance!!!)
+    // 6) Set the spatial tolerance for new cluster candidates (pay attention to the tolerance!!!)
     std::vector<pcl::PointIndices> cluster_indices;
 
     #ifdef USE_PCL_LIBRARY
+        pcl::search::KdTree<pcl::PointXYZ>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZ>);
+        tree->setInputCloud (cloud_filtered); 
 
-        //PCL functions
-        //HERE 6)
+        pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;
+
+        //Set the spatial tolerance for new cluster candidates
+        //If you take a very small value, it can happen that an actual object can be seen as multiple clusters. On the other hand, if you set the value too high, it could happen, that multiple objects are seen as one cluster
+        ec.setClusterTolerance (0.02); // 2cm
+
+        //We impose that the clusters found must have at least setMinClusterSize() points and maximum setMaxClusterSize() points
+        ec.setMinClusterSize (100);
+        ec.setMaxClusterSize (25000);
+        ec.setSearchMethod (tree);
+        ec.setInputCloud (cloud_filtered);
+        
+        // Here we are creating a vector of PointIndices, which contain the actual index information in a vector<int>. The indices of each detected cluster are saved here.
+        ec.extract (cluster_indices);
     #else
         // Optional assignment
         my_pcl::KdTree treeM;
