@@ -21,7 +21,7 @@
 #include "../include/tree_utilities.hpp"
 #include <boost/filesystem.hpp>
 namespace fs = boost::filesystem;
-#define USE_PCL_LIBRARY
+//#define USE_PCL_LIBRARY
 using namespace lidar_obstacle_detection;
 
 typedef std::unordered_set<int> my_visited_set_t;
@@ -113,15 +113,26 @@ std::vector<pcl::PointIndices> euclideanCluster(typename pcl::PointCloud<pcl::Po
 	my_visited_set_t visited{};                                                          //already visited points
 	std::vector<pcl::PointIndices> clusters;                                             //vector of PointIndices that will contain all the clusters
     std::vector<int> cluster;                                                            //vector of int that is used to store the points that the function proximity will give me back
-	//for every point of the cloud
-    //  if the point has not been visited (use the function called "find")
-    //    find clusters using the proximity function
-    //
-    //    if we have more clusters than the minimum
-    //      Create the cluster and insert it in the vector of clusters. You can extract the indices from the cluster returned by the proximity funciton (use pcl::PointIndices)   
-    //    end if
-    //  end if
-    //end for
+
+    int nPoints = static_cast<int>(cloud->size());
+    for (int i = 0; i < nPoints; ++i)	//for every point of the cloud
+
+    {
+        if (visited.find(i) == visited.end())    //  if the point has not been visited (use the function called "find")
+        {
+            cluster.clear();
+            proximity(cloud, i, tree, distanceTol, visited, cluster, setMaxClusterSize);    //    find clusters using the proximity function
+
+            if ((int)cluster.size() >= setMinClusterSize && (int)cluster.size() <= setMaxClusterSize)//    if we have more clusters than the minimum and less than the maximum
+            {
+                //  Create the cluster and insert it in the vector of clusters. You can extract the indices from the cluster returned by the proximity funciton (use pcl::PointIndices)   
+                pcl::PointIndices pointIndices;
+                pointIndices.indices.insert(pointIndices.indices.end(), cluster.begin(), cluster.end());
+                clusters.push_back(pointIndices);
+            }
+        }
+    }
+
 	return clusters;	
 }
 
@@ -198,6 +209,11 @@ ProcessAndRenderPointCloud (Renderer& renderer, pcl::PointCloud<pcl::PointXYZ>::
     // 6) Set the spatial tolerance for new cluster candidates (pay attention to the tolerance!!!)
     std::vector<pcl::PointIndices> cluster_indices;
 
+
+    float clusterTolerance = 0.4f;
+    int minClusterSize = 20;
+    int maxClusterSize = 50000;
+
     #ifdef USE_PCL_LIBRARY
         pcl::search::KdTree<pcl::PointXYZ>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZ>);
         tree->setInputCloud (cloud_filtered); 
@@ -206,11 +222,11 @@ ProcessAndRenderPointCloud (Renderer& renderer, pcl::PointCloud<pcl::PointXYZ>::
 
         //Set the spatial tolerance for new cluster candidates
         //If you take a very small value, it can happen that an actual object can be seen as multiple clusters. On the other hand, if you set the value too high, it could happen, that multiple objects are seen as one cluster
-        ec.setClusterTolerance (0.4);
+        ec.setClusterTolerance (clusterTolerance);
 
         //We impose that the clusters found must have at least setMinClusterSize() points and maximum setMaxClusterSize() points
-        ec.setMinClusterSize (20);
-        ec.setMaxClusterSize (50000);
+        ec.setMinClusterSize (minClusterSize);
+        ec.setMaxClusterSize (maxClusterSize);
         ec.setSearchMethod (tree);
         ec.setInputCloud (cloud_filtered);
         
@@ -221,7 +237,7 @@ ProcessAndRenderPointCloud (Renderer& renderer, pcl::PointCloud<pcl::PointXYZ>::
         my_pcl::KdTree treeM;
         treeM.set_dimension(3);
         setupKdtree(cloud_filtered, &treeM, 3);
-        cluster_indices = euclideanCluster(cloud_filtered, &treeM, clusterTolerance, setMinClusterSize, setMaxClusterSize);
+        cluster_indices = euclideanCluster(cloud_filtered, &treeM, clusterTolerance, minClusterSize, maxClusterSize);
     #endif
 
     std::vector<Color> colors = {Color(1,0,0), Color(1,1,0), Color(0,0,1), Color(1,0,1), Color(0,1,1)};
