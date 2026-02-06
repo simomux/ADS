@@ -1,3 +1,5 @@
+// In build: ./cluster_extraction ../../dataset_1
+
 #include <pcl/ModelCoefficients.h>
 #include <pcl/point_types.h>
 #include <pcl/io/pcd_io.h>
@@ -13,6 +15,7 @@
 #include "../include/Renderer.hpp"
 #include <pcl/point_types.h>
 #include <pcl/common/common.h>
+#include <pcl/common/distances.h>
 #include <chrono>
 #include <unordered_set>
 #include "../include/tree_utilities.hpp"
@@ -22,6 +25,22 @@ namespace fs = boost::filesystem;
 using namespace lidar_obstacle_detection;
 
 typedef std::unordered_set<int> my_visited_set_t;
+
+float compute_distance(const pcl::PointCloud<pcl::PointXYZ>::Ptr& cluster) {
+    const auto origin = pcl::PointXYZ(0, 0, 0);
+    float min_dist = std::numeric_limits<float>::max();
+    bool dist_processed = false;
+    
+    for (const auto &p : cluster->points) {
+        auto new_dist = pcl::euclideanDistance(origin, p);
+        if (new_dist < min_dist) {
+            min_dist = new_dist;
+            dist_processed = true;
+        }
+    }
+
+    return dist_processed ? min_dist : -1;
+}
 
 //This function sets up the custom kdtree using the point cloud
 void setupKdtree(typename pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, my_pcl::KdTree* tree, int dimension)
@@ -237,12 +256,22 @@ ProcessAndRenderPointCloud (Renderer& renderer, pcl::PointCloud<pcl::PointXYZ>::
         pcl::PointXYZ minPt, maxPt;
         pcl::getMinMax3D(*cloud_cluster, minPt, maxPt);
 
-        //TODO: 8) Here you can plot the distance of each cluster w.r.t ego vehicle
+        // 8) Here you can plot the distance of each cluster w.r.t ego vehicle
         Box box{minPt.x, minPt.y, minPt.z,
         maxPt.x, maxPt.y, maxPt.z};
-        //TODO: 9) Here you can color the vehicles that are both in front and 5 meters away from the ego vehicle
+
+        auto distance = compute_distance(cloud_cluster);
+        auto distance_label_stream = std::ostringstream();
+        distance_label_stream << std::setprecision(3) << distance;
+        renderer.addText(minPt.x, (maxPt.y+minPt.y)/2, maxPt.z, distance_label_stream.str() + " m");
+
+
+        // 9) Here you can color the vehicles that are both in front and 5 meters away from the ego vehicle
         //please take a look at the function RenderBox to see how to color the box
-        renderer.RenderBox(box, j);
+        bool too_close = distance < 5.0f;
+        bool in_front = minPt.x > 0.0f;
+        renderer.RenderBox(box, j, too_close && in_front ? Color(1,0,0) : Color(0,1,0), 0.5);
+
 
         ++clusterId;
         j++;
