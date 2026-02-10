@@ -45,7 +45,7 @@ class Simulation:
         
         # Aerodynamic drag and rolling resistance forces
         F_aero = 0.0
-        F_roll = self.C_rr * self.mass * 9.81
+        F_roll = self.C_rr * self.Fz
         
         dx = np.array([
             self.vx * np.cos(self.theta) - self.vy * np.sin(self.theta),  # dx/dt
@@ -74,7 +74,7 @@ class Simulation:
 
         # Aerodynamic drag and rolling resistance forces
         F_aero = 1/2 * self.rho * self.C_d * self.A * self.vx**2
-        F_roll = self.C_rr * self.mass * 9.81
+        F_roll = self.C_rr * self.Fz
 
         # Dynamics equations
         dx = np.array([
@@ -106,7 +106,7 @@ class Simulation:
 
         # Aerodynamic drag and rolling resistance forces
         F_aero = 1/2 * self.rho * self.C_d * self.A * self.vx**2
-        F_roll = self.C_rr * self.mass * 9.81
+        F_roll = self.C_rr * self.Fz
 
         # Dynamics equations
         dx = np.array([

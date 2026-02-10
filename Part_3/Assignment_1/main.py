@@ -52,7 +52,7 @@ def run_simulation(ax, steer, dt, integrator, model, vx0, steps=500):
         # Make one step simulation via model integration
         # Calculate sinusoidal steering angle
         time = step * dt
-        steer = steer_max * np.sin(2 * np.pi * frequency * time)  # Sinusoidal steering angle
+        #steer = steer_max * np.sin(2 * np.pi * frequency * time)  # Sinusoidal steering angle
 
         sim.integrate(ax, steer)
         
@@ -63,11 +63,6 @@ def run_simulation(ax, steer, dt, integrator, model, vx0, steps=500):
         vx_vals.append(sim.vx)
         vy_vals.append(sim.vy)
         r_vals.append(sim.r)
-
-        # Calculate slip angles for front and rear tires
-        alpha_f = 0.0  # Front tire slip angle
-        alpha_r = 0.0         # Rear tire slip angle
-
         alpha_f_vals.append(sim.alpha_f)
         alpha_r_vals.append(sim.alpha_r)
 
@@ -77,7 +72,7 @@ def main():
     # Simulation parameters
     dt = 0.001        # Time step (s)
     ax = 1.0            # Constant longitudinal acceleration (m/s^2)
-    steer = 0.0         # Constant steering angle (rad)
+    steer = 0.01        # Constant steering angle (rad)
     sim_time = 5.0      # Simulation duration in seconds
     steps = int(sim_time / dt)  # Simulation steps (30 seconds)
 
@@ -91,13 +86,13 @@ def main():
         ("euler", "nonlinear")
     ]
 
-    velocities = [10.0, 27.0]
+    velocities = [24, 10.0, 27.0]
 
     # Run each simulation and store the results
     all_results = []
     labels = []
     for integrator, model in configs:
-        results = run_simulation(ax, steer, dt, integrator, model, velocities[1], steps)
+        results = run_simulation(ax, steer, dt, integrator, model, velocities[0], steps)
         all_results.append(results)
         labels.append(f"{integrator.capitalize()} - {model.capitalize()}")
 
