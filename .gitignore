@@ -12,3 +12,5 @@
 
 # Assignment 3 data
 Part_1/assignment_3/data/*
+
+**/__pycache__/
