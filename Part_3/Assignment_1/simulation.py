@@ -24,12 +24,12 @@ class Simulation:
         self.x = 0                      # X position (m)
         self.y = 0                      # Y position (m)
         self.theta = 0                  # Heading angle (rad)
-        self.vx = 10.0                     # Longitudinal velocity (m/s)
+        self.vx = 0.0                     # Longitudinal velocity (m/s)
         self.vy = 0                     # Lateral velocity (m/s)
         self.r = 0                      # Yaw rate (rad/s)
 
         # Pacejka's Magic Formula coefficients
-        self.B, self.C, self.D, self.E = 7.1433, 1.3507 , 1.0489, -0.0074722
+        self.B, self.C, self.D, self.E = 0, 0 , 0, 0
         self.B_f, self.C_f, self.D_f, self.E_f = self.B, self.C, self.D, self.E
         self.B_r, self.C_r, self.D_r, self.E_r = self.B, self.C, self.D, self.E
         
@@ -43,10 +43,10 @@ class Simulation:
         F_roll = self.C_rr * self.mass * 9.81
         
         dx = np.array([
-            self.vx * np.cos(self.theta),
-            self.vx * np.sin(self.theta),
-            self.vx / self.l_wb * np.tan(delta),
-            ax,
+            0,
+            0,
+            0,
+            0,
             0,
             0
         ])
@@ -56,30 +56,29 @@ class Simulation:
         """ Linear single-track model with aerodynamic and rolling resistance. """
         
         # Tire slip angles
-        alpha_f = delta - np.arctan((self.vy + self.r * self.l_f) / self.vx) 
-        alpha_r = - np.arctan((self.vy - self.r * self.l_r) / self.vx)
-
+        alpha_f = 0#
+        alpha_r = 0#
 
         # Vertical forces (nominal vertical load)
-        Fz_f_nominal = self.l_r / self.l_wb * self.F_z
-        Fz_r_nominal = self.l_f / self.l_wb * self.mass * 9.81
+        Fz_f_nominal = 0#
+        Fz_r_nominal = 0#
 
         # Front and rear lateral forces
-        Fyf = self.Cf * alpha_f
-        Fyr = self.Cr * alpha_r
+        Fyf = 0#
+        Fyr = 0#
 
         # Aerodynamic drag and rolling resistance forces
-        F_aero = 1/2 * self.rho * self.C_d * self.A * self.vx**2
+        F_aero = 0#
         F_roll = self.C_rr * self.mass * 9.81
 
         # Dynamics equations
         dx = np.array([
-            self.vx * np.cos(self.theta) - self.vy * np.sin(self.theta),  # dx/dt
-            self.vx * np.sin(self.theta) + self.vy * np.cos(self.theta),  # dy/dt
-            self.r,                                                      # dtheta/dt
-            1/self.mass * ((self.mass * ax - F_aero - F_roll) - Fz_f_nominal * self.D_f*np.sin(Fyf) * np.sin(self.theta) + self.mass*self.vy*self.r),       # dvx/dt with resistive forces
-            1/self.mass * (Fyr + Fyf * np.cos(self.theta) - self.mass*self.vx*self.r),                # dvy/dt
-            1/self.I_z * (Fyf * self.l_f * np.cos(self.theta) - Fyr * self.l_r)               # dr/dt
+            0,  # dx/dt
+            0,  # dy/dt
+            0,                                                      # dtheta/dt
+            0,       # dvx/dt with resistive forces
+            0,                  # dvy/dt
+            0                # dr/dt
         ])
         
         return dx
@@ -133,12 +132,13 @@ class Simulation:
         self.update_state(k1, scale=0.5)
         
         k2 = self.compute_dx(ax, delta)
-        self.update_state(k2, scale=0.5, revert=k1)
+        self.update_state(k2, scale=0.5, revert=k1, revert_scale=0.5)
         
         k3 = self.compute_dx(ax, delta)
-        self.update_state(k3, scale=1, revert=k2)
+        self.update_state(k3, scale=1, revert=k2, revert_scale=0.5)
 
         k4 = self.compute_dx(ax, delta)
+        self.update_state(np.zeros(6), scale=1, revert=k3, revert_scale=1)
         
         # Combine k1, k2, k3, k4 for RK4 update
         dx = (k1 + 2*k2 + 2*k3 + k4) / 6
@@ -153,15 +153,15 @@ class Simulation:
         elif self.model == "nonlinear":
             return self.nonlinear_single_track_model(ax, delta)
 
-    def update_state(self, dx, scale=1, revert=None):
+    def update_state(self, dx, scale=1, revert=None, revert_scale=1):
         """ Update state with scaled dx. Optionally revert previous state for RK4. """
         if revert is not None:
-            self.x -= revert[0] * self.dt
-            self.y -= revert[1] * self.dt
-            self.theta -= revert[2] * self.dt
-            self.vx -= revert[3] * self.dt
-            self.vy -= revert[4] * self.dt
-            self.r -= revert[5] * self.dt
+            self.x -= revert[0] * self.dt * revert_scale
+            self.y -= revert[1] * self.dt * revert_scale
+            self.theta -= revert[2] * self.dt * revert_scale
+            self.vx -= revert[3] * self.dt * revert_scale
+            self.vy -= revert[4] * self.dt * revert_scale
+            self.r -= revert[5] * self.dt * revert_scale
 
         self.x += dx[0] * self.dt * scale
         self.y += dx[1] * self.dt * scale
