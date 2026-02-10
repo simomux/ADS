@@ -72,7 +72,7 @@ def main():
     # Simulation parameters
     dt = 0.001        # Time step (s)
     ax = 1.0            # Constant longitudinal acceleration (m/s^2)
-    steer = 0.01        # Constant steering angle (rad)
+    steer = 0.055        # Constant steering angle (rad)
     sim_time = 5.0      # Simulation duration in seconds
     steps = int(sim_time / dt)  # Simulation steps (30 seconds)
 
