@@ -28,7 +28,7 @@ def plot_trajectory(x_vals, y_vals, labels):
     plt.axis("equal")
     plt.show()
 
-def run_simulation(ax, steer, dt, integrator, model, steps=500):
+def run_simulation(ax, steer, dt, integrator, model, vx0, steps=500):
     """ Run a simulation with the given parameters and return all states. """
     # Vehicle parameters
     lf = 1.156          # Distance from COG to front axle (m)
@@ -37,7 +37,7 @@ def run_simulation(ax, steer, dt, integrator, model, steps=500):
     Iz = 1792           # Yaw moment of inertia (kg*m^2)
 
     # Initialize the simulation
-    sim = Simulation(lf, lr, mass, Iz, dt, integrator=integrator, model=model)
+    sim = Simulation(lf, lr, mass, Iz, dt, integrator=integrator, model=model, vx0=vx0)
 
     # Storage for state variables and slip angles
     x_vals, y_vals, theta_vals, vx_vals, vy_vals, r_vals = [], [], [], [], [], []
@@ -68,8 +68,8 @@ def run_simulation(ax, steer, dt, integrator, model, steps=500):
         alpha_f = 0.0  # Front tire slip angle
         alpha_r = 0.0         # Rear tire slip angle
 
-        alpha_f_vals.append(alpha_f)
-        alpha_r_vals.append(alpha_r)
+        alpha_f_vals.append(sim.alpha_f)
+        alpha_r_vals.append(sim.alpha_r)
 
     return x_vals, y_vals, theta_vals, vx_vals, vy_vals, r_vals, alpha_f_vals, alpha_r_vals
 
@@ -91,11 +91,13 @@ def main():
         ("euler", "nonlinear")
     ]
 
+    velocities = [10.0, 27.0]
+
     # Run each simulation and store the results
     all_results = []
     labels = []
     for integrator, model in configs:
-        results = run_simulation(ax, steer, dt, integrator, model, steps)
+        results = run_simulation(ax, steer, dt, integrator, model, velocities[1], steps)
         all_results.append(results)
         labels.append(f"{integrator.capitalize()} - {model.capitalize()}")
 

@@ -1,7 +1,7 @@
 import numpy as np
 
 class Simulation:
-    def __init__(self, lf, lr, mass, Iz, dt, integrator="euler", model="kinematic"):
+    def __init__(self, lf, lr, mass, Iz, dt, integrator="euler", model="kinematic", vx0=10.0):
         """
         Initialize the simulation parameters.
         """
@@ -19,17 +19,22 @@ class Simulation:
         self.C_d = 0.3                 # Drag coefficient (typical for cars)
         self.A = 2.2                   # Frontal area (m^2)
         self.C_rr = 0.015              # Rolling resistance coefficient
+        self.Fz = self.mass * 9.81 
 
         # Initialize states
         self.x = 0                      # X position (m)
         self.y = 0                      # Y position (m)
         self.theta = 0                  # Heading angle (rad)
-        self.vx = 0.0                     # Longitudinal velocity (m/s)
+
+        # Velocita iniziale
+        self.vx = vx0                     # Longitudinal velocity (m/s)
         self.vy = 0                     # Lateral velocity (m/s)
         self.r = 0                      # Yaw rate (rad/s)
+        self.alpha_f = 0                # Front sleep angle
+        self.alpha_r = 0                # Rear sleep angle
 
         # Pacejka's Magic Formula coefficients
-        self.B, self.C, self.D, self.E = 0, 0 , 0, 0
+        self.B, self.C, self.D, self.E = 7.1433, 1.3507 , 1.0489, -0.0074722
         self.B_f, self.C_f, self.D_f, self.E_f = self.B, self.C, self.D, self.E
         self.B_r, self.C_r, self.D_r, self.E_r = self.B, self.C, self.D, self.E
         
@@ -43,10 +48,10 @@ class Simulation:
         F_roll = self.C_rr * self.mass * 9.81
         
         dx = np.array([
-            0,
-            0,
-            0,
-            0,
+            self.vx * np.cos(self.theta) - self.vy * np.sin(self.theta),  # dx/dt
+            self.vx * np.sin(self.theta) + self.vy * np.cos(self.theta),  # dy/dt
+            self.vx/self.l_wb * np.tan(delta),  # dtheta/dt
+            ax + self.r * self.vy,  # dvx/dt with resistive forces
             0,
             0
         ])
@@ -56,29 +61,29 @@ class Simulation:
         """ Linear single-track model with aerodynamic and rolling resistance. """
         
         # Tire slip angles
-        alpha_f = 0#
-        alpha_r = 0#
+        self.alpha_f = delta - (self.vy + self.l_f * self.r) / self.vx 
+        self.alpha_r = - (self.vy - self.l_r * self.r) / self.vx
 
         # Vertical forces (nominal vertical load)
-        Fz_f_nominal = 0#
-        Fz_r_nominal = 0#
+        Fz_f_nominal = self.l_r/self.l_wb * self.Fz
+        Fz_r_nominal = self.l_f/self.l_wb * self.Fz
 
         # Front and rear lateral forces
-        Fyf = 0#
-        Fyr = 0#
+        Fyf = self.Fyf = self.alpha_f * self.Cf * Fz_f_nominal
+        Fyr = self.Fyr = self.alpha_r * self.Cr * Fz_r_nominal
 
         # Aerodynamic drag and rolling resistance forces
-        F_aero = 0#
+        F_aero = 1/2 * self.rho * self.C_d * self.A * self.vx**2
         F_roll = self.C_rr * self.mass * 9.81
 
         # Dynamics equations
         dx = np.array([
-            0,  # dx/dt
-            0,  # dy/dt
-            0,                                                      # dtheta/dt
-            0,       # dvx/dt with resistive forces
-            0,                  # dvy/dt
-            0                # dr/dt
+            self.vx * np.cos(self.theta) - self.vy * np.sin(self.theta),  # dx/dt
+            self.vx * np.sin(self.theta) + self.vy * np.cos(self.theta),  # dy/dt
+            self.r,                                                      # dtheta/dt
+            ax + self.r * self.vy - F_aero/self.mass - F_roll/self.mass - Fyf * np.sin(delta),       # dvx/dt with resistive forces
+            2 * self.Cf/self.mass * (delta - (self.vy + self.l_f * self.r )/self.vx) + 2 * self.Cr/self.mass * ((-self.vy - self.l_r * self.r)/self.vx),                  # dvy/dt
+            2 * self.Cf*self.l_f/self.I_z * (delta - (self.vy + self.l_f * self.r)/self.vx) - 2 * self.Cr*self.l_r/self.I_z * ((self.vy - self.l_r * self.r)/self.vx)                # dr/dt
         ])
         
         return dx
