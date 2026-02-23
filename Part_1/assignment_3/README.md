@@ -38,7 +38,7 @@ Academic Year: 2025/2026
         Activate the ROS setup for the current session 
             source /opt/ros/jazzy/setup.bash
         
-        To compile the code run this command in a different terminal (in the src folder): 
+        To compile the code run this command in a different terminal (in the particle folder): 
             colcon build --symlink-install 
         
         To run the code:
