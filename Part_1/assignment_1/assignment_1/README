@@ -1,36 +1,63 @@
-Academic Year: 2025/2026
+# Euclidean Clustering Object Detection
 
-* Assignment #1 Euclidean clustering object detection:
-    - Objective: Find and segment cars and pedestrians lying on the road
-        + 1) Implement an euclidean clustering program using the PCL library as studied during the lectures. Please follow the instructions and comments detailed in the code (cluster_extraction.cpp)
-        + 2) Optional assignment: Implement the algorithm that performs the euclidean clustering (use the proximity function and follow the pseudo-code), plots the distance of each cluster, color nearby front vehicles and stress your approach on dataset 2.
-        + 3) Try to make your solution work on dataset 2. If you cannot successfully provide a solution. Write a short report explaining why.
-       
-    - Tasks evaluated (evaluated over 15 points):
-        + The code compiles and works (2 points)
-        + Good cluster detection without false positives and high frame rate (5 points)
-        + Optional clustering implementation (1 point)
-        + Solution working on dataset 2 or report provided explaining how to make it work (1 point)
-        + Extend the code to support any additional useful functionality (4 points). Examples:
-			* Plot the distance of each cluster w.r.t ego vehicle 
-			* Color in red the vehicles that are both in front of and 5 meters away from the ego vehicle 
-			* Any other functionality is up to your discretion (use other strategies to create the clustering rather than the Euclidean heuristic)
+## Academic Year
 
-* OS requirements:
-    -A Linux based operating system or virtual machine (Ubuntu 18-24 is fine)
-    -PCL LIBRARY (sudo apt-get install pcl-tools | sudo apt install libpcl-dev)
-    -cmake (sudo apt-get install cmake)
+2025/2026
 
-* Instructions to compile the code:
-    cd build
-    cmake ..
-    make
-    ./cluster_extraction
+## Build the project
 
-* IMPORTANT:
-You have to change the following line of code:
-  std::vector<boost::filesystem::path> stream(boost::filesystem::directory_iterator{"/media/nacho/DATA/Sensors/pcl/dataset_1/"},
-                                             boost::filesystem::directory_iterator{});
+### Requirements
 
-into the path that contains your dataset 
-or modify the code to accept a command line dataset
+- Linux-based OS or VM (Ubuntu 18–24 is fine)
+- PCL library
+- CMake
+
+Suggested install commands:
+
+```bash
+sudo apt-get install pcl-tools
+sudo apt install libpcl-dev
+sudo apt-get install cmake
+```
+
+### Build and run
+
+```bash
+cd build
+cmake ..
+make
+./cluster_extraction
+```
+
+## Goals
+
+Find and segment cars and pedestrians lying on the road.
+
+### Main tasks
+
+1. Implement Euclidean clustering using PCL, following the instructions in `cluster_extraction.cpp`.
+2. Optional: implement your own Euclidean clustering algorithm (proximity function + pseudo-code), plot cluster distances, color nearby front vehicles, and stress-test on dataset 2.
+3. Make the solution work on dataset 2. If not possible, provide a short report explaining why.
+
+## Evaluation metrics (15 points)
+
+- Code compiles and runs (2 points)
+- Good cluster detection with low false positives and high frame rate (5 points)
+- Optional custom clustering implementation (1 point)
+- Works on dataset 2, or report explaining limitations/fixes (1 point)
+- Additional useful functionality (4 points), for example:
+  - plot distance of each cluster with respect to ego vehicle
+  - color in red vehicles that are in front and within 5 meters
+  - propose and implement a different clustering strategy beyond Euclidean heuristic
+
+## Important
+
+You must update the dataset path in code:
+
+```cpp
+std::vector<boost::filesystem::path> stream(
+    boost::filesystem::directory_iterator{"/media/nacho/DATA/Sensors/pcl/dataset_1/"},
+    boost::filesystem::directory_iterator{});
+```
+
+Replace it with your local dataset path, or modify the program to accept the dataset path as a command-line argument.
