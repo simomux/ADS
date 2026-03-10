@@ -11,9 +11,9 @@
 *.pcd
 
 # Assignment 3 data
-Part_1/assignment_3/data/*
-Part_1/assignment_3/**/install
-Part_1/assignment_3/**/log
+Part_1/**/data/*
+Part_1/**/install
+Part_1/**/log
 Part_1/Lab_Examples/**
 
 **/__pycache__/
