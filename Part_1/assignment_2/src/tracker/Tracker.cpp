@@ -5,7 +5,7 @@ Tracker::Tracker()
     cur_id_ = 0;
     distance_threshold_ = 4.5; // meters
     covariance_threshold = 2.0;
-    loss_threshold = 300; //number of frames the track has not been seen
+    loss_threshold = 100; //number of frames the track has not been seen
 }
 Tracker::~Tracker()
 {
@@ -84,8 +84,8 @@ void Tracker::dataAssociation(std::vector<bool> &associated_detections, const st
             double delta_y = centroids_y[j] - tracks_[i].getY();
 
             double euclidean_sq = delta_x*delta_x + delta_y*delta_y;
-            if (euclidean_sq > distance_threshold_ * 2.0)  // Soglia generosa
-                continue;  // Scarta rapidamente
+            if (euclidean_sq > distance_threshold_ * distance_threshold_)
+                continue;
 
             // 2x2 covariance matrix
             Eigen::Matrix2d covariance;
@@ -106,7 +106,7 @@ void Tracker::dataAssociation(std::vector<bool> &associated_detections, const st
         }
 
         // Associate the closest detection to a tracklet
-        if (min_dist < distance_threshold_ && !associated_detections[closest_point_id])
+        if (closest_point_id != -1 && min_dist < distance_threshold_ && !associated_detections[closest_point_id])
         {
             associated_track_det_ids_.push_back(std::make_pair(closest_point_id, i));
             associated_detections[closest_point_id] = true;

@@ -22,19 +22,18 @@ void CloudManager::processAndRenderPointCloud(const pcl::PointCloud<pcl::PointXY
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_f(new pcl::PointCloud<pcl::PointXYZ>);
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered(new pcl::PointCloud<pcl::PointXYZ>);
 
-    // Set the voxel grid
-    pcl::VoxelGrid<pcl::PointXYZ> vg;
-    vg.setInputCloud(cloud);
-    vg.setLeafSize(0.1f, 0.1f, 0.1f);
-    vg.filter(*cloud_filtered);
-
-    // Create region based filtering object
-    // We crop points that are far away from us, in which we are not interested
+    // Crop first to reduce the cloud to the ROI before downsampling
     pcl::CropBox<pcl::PointXYZ> cb(true);
-    cb.setInputCloud(cloud_filtered);
+    cb.setInputCloud(cloud);
     cb.setMin(Eigen::Vector4f(-15.0, -5.0, -3, 1.0));
     cb.setMax(Eigen::Vector4f(10.0, 6.0, 3, 1.0));
     cb.filter(*cloud_filtered);
+
+    // Downsample with voxel grid after cropping
+    pcl::VoxelGrid<pcl::PointXYZ> vg;
+    vg.setInputCloud(cloud_filtered);
+    vg.setLeafSize(0.1f, 0.1f, 0.1f);
+    vg.filter(*cloud_filtered);
 
     // Create the segmentation object for the planar model and set all the parameters
     pcl::SACSegmentation<pcl::PointXYZ> seg;
@@ -154,7 +153,7 @@ void CloudManager::startCloudManager()
     std::sort(stream.begin(), stream.end());
     auto streamIterator = stream.begin();
 
-    while (true && streamIterator != stream.end())
+    while (streamIterator != stream.end())
     {
         auto startTime = std::chrono::steady_clock::now();
 
@@ -175,4 +174,5 @@ void CloudManager::startCloudManager()
         if (elapsedTime.count() < freq_)
             std::this_thread::sleep_for(std::chrono::milliseconds(sleep_for_milliseconds));
     }
+    done = true;
 }

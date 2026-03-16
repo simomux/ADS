@@ -28,13 +28,15 @@ int main(int argc, char *argv[])
     CloudManager lidar_cloud(log_path, freq, renderer);
     std::thread t(&CloudManager::startCloudManager, &lidar_cloud);
 
-    while (true)
+    while (!lidar_cloud.done)
     {
         // Clear the render
         renderer.clearViewer();
 
-        while (!lidar_cloud.new_measurement)
+        while (!lidar_cloud.new_measurement && !lidar_cloud.done)
             ; // wait for new data (we will execute the following code each 100ms)
+
+        if (lidar_cloud.done) break;
 
         // fetch data
         lidar_cloud.mtxData.lock();

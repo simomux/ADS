@@ -33,6 +33,7 @@ public:
 
   // data handlers
   bool new_measurement = false;
+  bool done = false;
   std::mutex mtxData;
 
 private:
