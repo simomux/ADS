@@ -19,7 +19,9 @@ sim_time = 120.0      # Simulation duration in seconds
 steps = int(sim_time / dt)  # Simulation steps (30 seconds)
 
 # Control references
-target_speed = 20.0
+target_speed = 15.0
+#target_speed = 25.0
+
 
 # Vehicle parameters
 lf = 1.156          # Distance from COG to front axle (m)
@@ -30,7 +32,7 @@ Iz = 1792           # Yaw moment of inertia (kg*m^2)
 max_steer = 3.14  # Maximum steering angle in radians
 
 # Create instance of PID for Longitudinal Control
-long_control_pid = pid.PIDController(kp=0.001, ki=0.001, kd=0.001, output_limits=(-2, 2))
+long_control_pid = pid.PIDController(kp=1, ki=0.25, kd=0.01, output_limits=(-2, 2))
 
 # Create instance of PurePursuit, Stanley and MPC for Lateral Control
 k_pp = 0.001  # Speed proportional gain for Pure Pursuit
@@ -114,7 +116,7 @@ def run_simulation(ax, steer, dt, integrator, model, steps=500):
 
         # Calculate ax to track speed
         ax = long_control_pid.compute(target_speed, sim.vx, dt) # Exercise 1
-        # steer = 0 # Exercise 1 only
+        steer = 0 # Exercise 1 only
 
         # Update actual frenet-frame position in the spline
         # aka longitudinal position and actual lateral error
@@ -169,7 +171,7 @@ def run_simulation(ax, steer, dt, integrator, model, steps=500):
             targets.append(trg)
             s_pos += step_increment
 
-        steer = opt_step(targets, sim)
+        #steer = opt_step(targets, sim)
 
         # Make one step simulation via model integration
         sim.integrate(ax, float(steer))
