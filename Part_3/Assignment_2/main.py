@@ -19,8 +19,8 @@ sim_time = 120.0      # Simulation duration in seconds
 steps = int(sim_time / dt)  # Simulation steps (30 seconds)
 
 # Control references
-target_speed = 15.0
-#target_speed = 25.0
+# target_speed = 15.0
+target_speed = 25.0
 
 
 # Vehicle parameters
@@ -106,6 +106,7 @@ def run_simulation(ax, steer, dt, integrator, model, steps=500):
     # Storage for state variables and slip angles
     x_vals, y_vals, theta_vals, vx_vals, vy_vals, r_vals = [], [], [], [], [], []
     alpha_f_vals, alpha_r_vals = [], []  # Slip angles
+    ax_vals, vx_error_vals = [], []  # Longitudinal acceleration and velocity error
 
     casadi_model()
 
@@ -191,7 +192,10 @@ def run_simulation(ax, steer, dt, integrator, model, steps=500):
         alpha_f_vals.append(alpha_f)
         alpha_r_vals.append(alpha_r)
 
-    return x_vals, y_vals, theta_vals, vx_vals, vy_vals, r_vals, alpha_f_vals, alpha_r_vals
+        ax_vals.append(ax)
+        vx_error_vals.append(target_speed - sim.vx)
+
+    return x_vals, y_vals, theta_vals, vx_vals, vy_vals, r_vals, alpha_f_vals, alpha_r_vals, ax_vals, vx_error_vals
 
 def main():
 
@@ -218,6 +222,8 @@ def main():
     r_results = [result[5] for result in all_results]
     alpha_f_results = [result[6] for result in all_results]
     alpha_r_results = [result[7] for result in all_results]
+    ax_results = [result[8] for result in all_results]
+    vx_error_results = [result[9] for result in all_results]
 
     # Plot comparisons for each state variable
     plot_trajectory(x_results, y_results, labels, path_spline)
@@ -227,6 +233,8 @@ def main():
     plot_comparison(r_results, labels, "Yaw Rate Comparison", "Time Step", "Yaw Rate (rad/s)")
     plot_comparison(alpha_f_results, labels, "Front Slip Angle Comparison", "Time Step", "Slip Angle (rad) - Front")
     plot_comparison(alpha_r_results, labels, "Rear Slip Angle Comparison", "Time Step", "Slip Angle (rad) - Rear")
+    plot_comparison(ax_results, labels, "Longitudinal Acceleration", "Time Step", "Acceleration (m/s^2)")
+    plot_comparison(vx_error_results, labels, "Velocity Error", "Time Step", "Velocity Error (m/s)")
 
 if __name__ == "__main__":
     main()
