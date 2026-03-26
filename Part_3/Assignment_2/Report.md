@@ -8,11 +8,31 @@ Plot the requested outputs for both velocity conditions and indicate what
 are the settling time and eventually the overshoot, as well as other things
 you could consider useful.
 
+![Trajectory](./Img/Es1/Speed1/Trajectory.png)
+
+As you can see from the graph above in Ex.1 the vehicle is only capable of going straight since lateral control is disabled. The trajectory computed by the vehicle is of course the same for both testcases at 15 and 25m/s.
+
+The PID gains were set for both test cases as follows after trial and error:
+
+```python
+kp=1, ki=0.25, kd=0.01
+```
+
 ### Speed = 15m/s
 
+![Longitudinal Velocity](./Img/Es1/Speed1/LongitudinalVelocity.png)
+
+At 15m/s you can notice how in the first 50 timesteps (2.5s) the vehicle reaches 14m/s and takes the next 150 (7.5s) timesteps to reach target speed slowly and controlled without overshooting. After 200 timesteps (10s) it settles at target speed and maintains it continuously.
+
+![Velocity Error](./Img/Es1/Speed1/VelocityError.png)
+
+You can see also how the initial velocity error starts at 5m/s until it converges to 0.
+
+![Longitudinal Accelleration](./Img/Es1/Speed1/LongitudinalAccelleration.png)
+
+You can notice how the initial acceleration is constant at 2m/s^2 for the first ~20 timesteps and then decreases until reaching the minimum required to counter drag and rolling resistances (~0.23m/s^2).
 
 ### Speed = 25m/s
-
 
 ## Exercise 2 - Low-speed Lateral Control
 
