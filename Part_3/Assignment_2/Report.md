@@ -34,6 +34,18 @@ You can notice how the initial acceleration is constant at 2m/s^2 for the first 
 
 ### Speed = 25m/s
 
+![Longitudinal Velocity](./img/Es1/Speed2/LongitudinalVelocity.png)
+
+At 25m/s you can notice that target speed is reached after ~300 timesteps (15s) having a rapid increase for the first ~150 timestep (7,5s), then slower approaching the desired speed for the remaining ~150 timesteps (7.5s).
+
+![Velocity Error](./Img/Es1/Speed2/VelocityError.png)
+
+Velocity error starts at 15m/s and converges to 0 slightly after target speed is reached.
+
+![Longitudinal Accelleration](./Img/Es1/Speed2/LongitudinalAcceleration.png)
+
+Acceleration is constant at 2m/s^2 for the first 100 timesteps (5s), and then slowly converging to the minimum required to maintain target speed after ~400 timesteps (20s).
+
 ## Exercise 2 - Low-speed Lateral Control
 
 ## Exercise 3: High-speed Lateral Control
