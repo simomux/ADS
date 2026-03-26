@@ -28,7 +28,7 @@ At 15m/s you can notice how in the first 50 timesteps (2.5s) the vehicle reaches
 
 You can see also how the initial velocity error starts at 5m/s until it converges to 0.
 
-![Longitudinal Accelleration](./Img/Es1/Speed1/LongitudinalAccelleration.png)
+![Longitudinal Accelleration](./img/Es1/Speed1/LongitudinalAccelleration.png)
 
 You can notice how the initial acceleration is constant at 2m/s^2 for the first ~20 timesteps and then decreases until reaching the minimum required to counter drag and rolling resistances (~0.23m/s^2).
 
