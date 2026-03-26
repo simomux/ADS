@@ -24,11 +24,11 @@ kp=1, ki=0.25, kd=0.01
 
 At 15m/s you can notice how in the first 50 timesteps (2.5s) the vehicle reaches 14m/s and takes the next 150 (7.5s) timesteps to reach target speed slowly and controlled without overshooting. After 200 timesteps (10s) it settles at target speed and maintains it continuously.
 
-![Velocity Error](./Img/Es1/Speed1/VelocityError.png)
+![Velocity Error](./img/Es1/Speed1/VelocityError.png)
 
 You can see also how the initial velocity error starts at 5m/s until it converges to 0.
 
-![Longitudinal Accelleration](./img/Es1/Speed1/LongitudinalAccelleration.png)
+![Longitudinal Accelleration](./Img/Es1/Speed1/LongitudinalAccelleration.png)
 
 You can notice how the initial acceleration is constant at 2m/s^2 for the first ~20 timesteps and then decreases until reaching the minimum required to counter drag and rolling resistances (~0.23m/s^2).
 
@@ -38,11 +38,11 @@ You can notice how the initial acceleration is constant at 2m/s^2 for the first 
 
 At 25m/s you can notice that target speed is reached after ~300 timesteps (15s) having a rapid increase for the first ~150 timestep (7,5s), then slower approaching the desired speed for the remaining ~150 timesteps (7.5s).
 
-![Velocity Error](./Img/Es1/Speed2/VelocityError.png)
+![Velocity Error](./img/Es1/Speed2/VelocityError.png)
 
 Velocity error starts at 15m/s and converges to 0 slightly after target speed is reached.
 
-![Longitudinal Accelleration](./Img/Es1/Speed2/LongitudinalAcceleration.png)
+![Longitudinal Accelleration](./img/Es1/Speed2/LongitudinalAcceleration.png)
 
 Acceleration is constant at 2m/s^2 for the first 100 timesteps (5s), and then slowly converging to the minimum required to maintain target speed after ~400 timesteps (20s).
 
