@@ -15,12 +15,11 @@ matplotlib.use('TkAgg')  # Or 'Agg', 'Qt5Agg', etc.
 dt = 0.05         # Time step (s)
 ax = 0.0            # Constant longitudinal acceleration (m/s^2)
 steer = 0.0      # Constant steering angle (rad)
-sim_time = 120.0      # Simulation duration in seconds
+sim_time = 200.0      # Simulation duration in seconds
 steps = int(sim_time / dt)  # Simulation steps (30 seconds)
 
 # Control references
-# target_speed = 15.0
-target_speed = 25.0
+target_speed = 20.0
 
 
 # Vehicle parameters
@@ -35,7 +34,7 @@ max_steer = 3.14  # Maximum steering angle in radians
 long_control_pid = pid.PIDController(kp=1, ki=0.25, kd=0.01, output_limits=(-2, 2))
 
 # Create instance of PurePursuit, Stanley and MPC for Lateral Control
-k_pp = 0.001  # Speed proportional gain for Pure Pursuit
+k_pp = 0.3  # Speed proportional gain for Pure Pursuit
 look_ahead = 1.0  # Minimum look-ahead distance for Pure Pursuit
 k_stanley = 0.001  # Gain for cross-track error for Stanley
 pp_controller = purepursuit.PurePursuitController(wheelbase, max_steer)
@@ -107,6 +106,9 @@ def run_simulation(ax, steer, dt, integrator, model, steps=500):
     x_vals, y_vals, theta_vals, vx_vals, vy_vals, r_vals = [], [], [], [], [], []
     alpha_f_vals, alpha_r_vals = [], []  # Slip angles
     ax_vals, vx_error_vals = [], []  # Longitudinal acceleration and velocity error
+    lat_error_vals = []  # Lateral error
+
+    total_distance = 0.0  # Track distance traveled along the path
 
     casadi_model()
 
@@ -117,7 +119,7 @@ def run_simulation(ax, steer, dt, integrator, model, steps=500):
 
         # Calculate ax to track speed
         ax = long_control_pid.compute(target_speed, sim.vx, dt) # Exercise 1
-        steer = 0 # Exercise 1 only
+        # steer = 0 # Exercise 1 only
 
         # Update actual frenet-frame position in the spline
         # aka longitudinal position and actual lateral error
@@ -150,7 +152,7 @@ def run_simulation(ax, steer, dt, integrator, model, steps=500):
         
         ####### Pure Pursuit # Comment for Exercise 1
         # Compute the look-ahead distance
-        # steer = pp_controller.compute_steering_angle(loc_trg, sim.theta, Lf)
+        steer = pp_controller.compute_steering_angle(loc_trg, sim.theta, Lf)
         
         ###### Stanley # Comment for Exercise 1
         # Adjust CoG position to the front axle position
@@ -194,8 +196,15 @@ def run_simulation(ax, steer, dt, integrator, model, steps=500):
 
         ax_vals.append(ax)
         vx_error_vals.append(target_speed - sim.vx)
+        lat_error_vals.append(local_error[1])
 
-    return x_vals, y_vals, theta_vals, vx_vals, vy_vals, r_vals, alpha_f_vals, alpha_r_vals, ax_vals, vx_error_vals
+        # Stop simulation after one full lap
+        total_distance += sim.vx * dt
+        if total_distance >= path_spline.s[-1]:
+            print("Lap completed! Total distance:", total_distance)
+            break
+
+    return x_vals, y_vals, theta_vals, vx_vals, vy_vals, r_vals, alpha_f_vals, alpha_r_vals, ax_vals, vx_error_vals, lat_error_vals
 
 def main():
 
@@ -224,6 +233,7 @@ def main():
     alpha_r_results = [result[7] for result in all_results]
     ax_results = [result[8] for result in all_results]
     vx_error_results = [result[9] for result in all_results]
+    lat_error_results = [result[10] for result in all_results]
 
     # Plot comparisons for each state variable
     plot_trajectory(x_results, y_results, labels, path_spline)
@@ -235,6 +245,7 @@ def main():
     plot_comparison(alpha_r_results, labels, "Rear Slip Angle Comparison", "Time Step", "Slip Angle (rad) - Rear")
     plot_comparison(ax_results, labels, "Longitudinal Acceleration", "Time Step", "Acceleration (m/s^2)")
     plot_comparison(vx_error_results, labels, "Velocity Error", "Time Step", "Velocity Error (m/s)")
+    plot_comparison(lat_error_results, labels, "Lateral Error", "Time Step", "Lateral Error (m)")
 
 if __name__ == "__main__":
     main()
