@@ -46,7 +46,7 @@ class StanleyController:
 
         # Compute cross-track correction
         effective_speed = max(speed, 1.0)  # Prevent division by very small speeds
-        cross_track_correction = math.atan2(self.k * cross_track_error, effective_speed)
+        cross_track_correction = math.atan2(self.k * cross_track_error, effective_speed)    # K * e_ct / v
 
         # Total steering angle
         # TO-DO: Adjust the gains in order to improve the controller's tracking
