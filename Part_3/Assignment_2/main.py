@@ -19,7 +19,7 @@ sim_time = 200.0      # Simulation duration in seconds
 steps = int(sim_time / dt)  # Simulation steps (30 seconds)
 
 # Control references
-target_speed = 23.0
+target_speed = 25.0
 
 
 # Vehicle parameters

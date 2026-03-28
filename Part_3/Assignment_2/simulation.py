@@ -1,7 +1,7 @@
 import numpy as np
 
 class Simulation:
-    def __init__(self, lf, lr, mass, Iz, dt, integrator="euler", model="kinematic", vx0=23.0):
+    def __init__(self, lf, lr, mass, Iz, dt, integrator="euler", model="kinematic", vx0=25.0):
         """
         Initialize the simulation parameters.
         """

@@ -88,7 +88,7 @@ def opt_step(target, state):
 
 
     # Objective function and constraints
-    J += mtimes(Us.T,Us)*45000.0 #Consider to set this weight dependent on speed
+    J += mtimes(Us.T,Us)*60000.0 #Consider to set this weight dependent on speed
 
     # NLP
     nlp = {'x':vertcat(Us), 'f':J}
