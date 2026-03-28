@@ -81,14 +81,14 @@ def opt_step(target, state):
         # give more importance to the last step using a bigger gain
         if(k == nu-1):
             gain_mult=1 #You can use this multiplier as terminal cost
-        J += 100.0*gain_mult*(X[0]-target[k][0])**2 #x error cost 
-        J += 100.0*gain_mult*(X[1]-target[k][1])**2 #y error cost
-        J += 10.0*gain_mult*(X[2] - target[k][2])**2 #heading error cost
+        J += 150.0*gain_mult*(X[0]-target[k][0])**2 #x error cost 
+        J += 150.0*gain_mult*(X[1]-target[k][1])**2 #y error cost
+        J += 20.0*gain_mult*(X[2] - target[k][2])**2 #heading error cost
     # G = X[index] #if you want to set a state to constrain in arg["lbg"] and arg["ubg"]. It can be ignored
 
 
     # Objective function and constraints
-    J += mtimes(Us.T,Us)*100000.0 #Consider to set this weight dependent on speed
+    J += mtimes(Us.T,Us)*45000.0 #Consider to set this weight dependent on speed
 
     # NLP
     nlp = {'x':vertcat(Us), 'f':J}
