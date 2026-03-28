@@ -19,7 +19,7 @@ sim_time = 200.0      # Simulation duration in seconds
 steps = int(sim_time / dt)  # Simulation steps (30 seconds)
 
 # Control references
-target_speed = 20.0
+target_speed = 23.0
 
 
 # Vehicle parameters
@@ -159,7 +159,7 @@ def run_simulation(ax, steer, dt, integrator, model, steps=500):
         px_front = position_projected[0] + lf * math.cos(sim.theta)
         py_front = position_projected[1] + lf * math.sin(sim.theta)
         stanley_target = px_front, py_front, path_spline.calc_yaw(path_spline.cur_s)
-        steer = stanley_controller.compute_steering_angle(actual_pose, stanley_target, sim.vx)
+        # steer = stanley_controller.compute_steering_angle(actual_pose, stanley_target, sim.vx)
 
         ###### MPC
 
@@ -174,7 +174,7 @@ def run_simulation(ax, steer, dt, integrator, model, steps=500):
             targets.append(trg)
             s_pos += step_increment
 
-        #steer = opt_step(targets, sim)
+        steer = float(opt_step(targets, sim))
 
         # Make one step simulation via model integration
         sim.integrate(ax, float(steer))
