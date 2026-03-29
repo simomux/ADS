@@ -2,8 +2,6 @@
 
 Assignments from my Autonomous Driving Systems class.
 
----
-
 ## Part 1 — Perception & Tracking (C++ / PCL / ROS 2)
 
 ### [Assignment 1 — LiDAR Object Detection via Euclidean Clustering](Part_1/assignment_1/)
@@ -68,5 +66,70 @@ Includes analysis of model-mismatch degradation at high speed and lateral-longit
 Optimal trajectory generation in **Frenet coordinates** using quintic/quartic polynomial sampling. Evaluates a candidate set of trajectories via a multi-objective cost function (jerk, time, deviation, obstacle proximity) and selects the minimum-cost path with real-time replanning and static obstacle avoidance.
 
 **Stack:** Python, NumPy, Matplotlib
+
+
+## Running the assignments
+
+All assignments can be launched from the repo root with a single script (MacOS only):
+
+```bash
+python run.py
+python run.py <1-7> # Run a specific assignment
+```
+
+| # | Assignment |
+| - | ---------- |
+| 1 | Part 1 — Euclidean Clustering |
+| 2 | Part 1 — Kalman Filter Tracking |
+| 3 | Part 1 — Particle Filter (ROS 2) |
+| 4 | Part 2 — Visual Odometry (Jupyter) |
+| 5 | Part 3 — Vehicle Modeling |
+| 6 | Part 3 — Longitudinal & Lateral Control |
+| 7 | Part 3 — Frenet Planner |
+
+Extra arguments are forwarded to the underlying script (Part 3 only):
+
+```bash
+python run.py 6 --speed 25
+```
+
+### Prerequisites
+
+#### Part 1 — Assignment 1 & 2 (C++ / PCL)
+
+Built automatically by the script via CMake. Requires:
+
+- CMake ≥ 3.5
+- PCL ≥ 1.2 — install with `brew install pcl`
+- Eigen3 — install with `brew install eigen`
+
+#### Part 1 — Assignment 3 (ROS 2 / Particle Filter)
+
+Requires a conda environment named `ros2` set up with [RoboStack](https://robostack.github.io) (ROS 2 Humble on macOS):
+
+```bash
+mamba create -n ros2 python=3.11 \
+  -c robostack-staging -c conda-forge \
+  ros-humble-desktop \
+  ros-humble-pcl-conversions \
+  ros-humble-pcl-msgs \
+  ros-humble-rosbag2-transport \
+  ros-humble-rosbag2-storage-default-plugins \
+  colcon-common-extensions \
+  ceres-solver \
+  gflags
+```
+
+The script builds the node automatically if not already built, opens a second Terminal window to play the bag, and handles the `DYLD_INSERT_LIBRARIES` workaround required on macOS for ROS 2 Python bindings.
+
+#### Part 2 — Visual Odometry (Jupyter)
+
+Python dependencies are checked automatically and installed via pip if missing:
+`opencv-python`, `numpy`, `matplotlib`, `gtsam`, `open3d`, `tqdm`, `jupyter`
+
+#### Part 3 — Control & Planning (Python)
+
+Python dependencies are checked automatically and installed via pip if missing.
+Assignment 2 and 3 additionally requires `casadi` for MPC.
 
 ---
