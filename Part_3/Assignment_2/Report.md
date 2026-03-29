@@ -1,4 +1,4 @@
-# Assignment 5
+# Assignment 2 - Part 3
 
 AY: 2025-2026
 
@@ -145,3 +145,143 @@ Velocity error peaks at ~0.20 m/s (1.0% of target speed), within the 5% requirem
 Lateral error peaks at ~0.45m — larger than Pure Pursuit (0.20m) at the same speed. This is expected: Stanley's cross-track correction is attenuated at high speed by the `1/vx` term, halving the cross-correction term when speed doubles, making it less reactive than at low speed. Despite this, the 1m requirement is still met.
 
 ## Exercise 3: High-speed Lateral Control
+
+For Exercise 3, high-speed lateral control is implemented using **Model Predictive Control (MPC)** via the CasADi solver, combined with the same PID longitudinal controller from Exercise 1.
+
+### Weight Tuning
+
+Tuning the MPC weights required significant experimentation, particularly at 25 m/s where the kinematic model approximation becomes less accurate due to significant tire slip:
+
+- **Control weight too low** (1000–15000): allowed too-aggressive steering corrections, causing instability or immediate lateral error violations in the curves.
+- **Control weight too high + low heading weight** (100000, heading=10): IPOPT could not find a feasible solution at curve entry. The solver was over-constrained on steering while under-incentivized to align with the path heading.
+- **Final configuration** (x=150, y=150, heading=20, control=60000): balances path tracking and smooth control. The higher heading weight ensures the vehicle pre-aligns with the curve direction, reducing the entry spike in lateral error.
+
+### Speed = 23 m/s
+
+![Trajectory](./img/Es3/mpc/Speed1/Trajectory.png)
+
+The vehicle tracks the oval path accurately for a full lap at 23 m/s, with the simulated trajectory closely overlapping the reference spline.
+
+![Longitudinal Velocity](./img/Es3/mpc/Speed1/LongitudinalVelocity.png)
+
+Longitudinal velocity stays close to 23 m/s throughout, with small perturbations at the curves due to lateral-longitudinal coupling in the nonlinear model.
+
+![Velocity Error](./img/Es3/mpc/Speed1/VelocityError.png)
+
+Peak velocity error is ~0.35 m/s (1.5% of target speed), well within the 5% requirement (1.15 m/s).
+
+![Lateral Error](./img/Es3/mpc/Speed1/LateralError.png)
+
+Lateral error peaks at ~0.60m in the curves, comfortably within the 1m requirement.
+
+![Lateral Velocity](./img/Es3/mpc/Speed1/LateralVelocity.png)
+
+Lateral velocity reaches up to ~1.5 m/s in the curves, consistent with the vehicle dynamics at this speed.
+
+### Speed = 25 m/s
+
+At 25 m/s the vehicle operates near the limits of the kinematic bicycle model used internally by the MPC. The mismatch between the kinematic prediction and the actual nonlinear dynamics causes oscillatory steering corrections in the curves, which is the dominant behaviour visible in the next plots.
+
+![Trajectory](./img/Es3/mpc/Speed2/Trajectory.png)
+
+The vehicle completes the full lap at 25 m/s with the trajectory closely following the reference spline.
+
+![Longitudinal Velocity](./img/Es3/mpc/Speed2/LongitudinalVelocity.png)
+
+Longitudinal velocity oscillates between ~24.4 and ~25.4 m/s. The oscillations are larger than at 23 m/s due to stronger lateral forces in the curves coupling back into the longitudinal dynamics.
+
+![Velocity Error](./img/Es3/mpc/Speed2/VelocityError.png)
+
+Peak velocity error is ~0.63 m/s (2.5% of target speed), within the 5% requirement (1.25 m/s).
+
+![Lateral Error](./img/Es3/mpc/Speed2/LateralError.png)
+
+Lateral error peaks at ~0.93m at the first curve entry and ~0.95m in the second curve. The oscillatory pattern visible throughout the curves is characteristic of the MPC compensating for the growing mismatch between the kinematic internal model and the actual nonlinear dynamics at high speed.
+
+![Lateral Velocity](./img/Es3/mpc/Speed2/LateralVelocity.png)
+
+Lateral velocity reaches up to ~2.5 m/s in the curves, significantly higher than at 23 m/s, indicating substantial tire slip consistent with operation near the nonlinear tire force saturation region.
+
+![Front Slip Angle](./img/Es3/mpc/Speed2/FrontSlipAngle.png)
+
+Front slip angle peaks at ~0.12 rad and shows clear oscillations in both curves, reflecting the MPC repeatedly correcting the heading mismatch.
+
+Both speed conditions satisfy the requirements without relaxing the constraints. 
+
+The oscillatory behaviour at 25 m/s is a structural limitation of the mismatch between the **kinematic** internal model used by the MPC and the **nonlinear dynamic** model used in simulation. The MPC internal model assumes zero lateral velocity and derives yaw rate purely from geometry, with no independent tire slip dynamics. At high speed, significant tire slip develops and the real vehicle exhibits non-negligible lateral velocity and yaw rate which the MPC cannot predict, causing the oscillatory corrections visible in the curves.
+
+Implementing even a simple dynamic model and substituing it to the kinetic one would probably achieve less jerky behaviour through cornerns and higher speeds, since over 25m/s the kinematic model cannot maintain the 1m lateral error constraint.
+
+### Bonus: Pure Pursuit at High Speed
+
+Pure Pursuit was also tested at 23 m/s and 25 m/s as a comparison to MPC. Being a purely geometric controller with no internal vehicle model, it is inherently free from model mismatch. It computes the steering angle solely from the geometry between the vehicle and the look-ahead point, regardless of speed.
+
+#### PP at 23 m/s
+
+![Trajectory](./img/Es3/pp/Speed1/Trajectory.png)
+
+The vehicle tracks the oval path accurately for a full lap.
+
+![Velocity Error](./img/Es3/pp/Speed1/VelocityError.png)
+
+Peak velocity error is ~0.32 m/s (1.4% of target speed).
+
+![Lateral Error](./img/Es3/pp/Speed1/LateralError.png)
+
+Lateral error peaks at ~0.42m, acting significantly better than MPC (0.60m) at the same speed, with no oscillatory corrections.
+
+#### PP at 25 m/s
+
+![Trajectory](./img/Es3/pp/Speed2/Trajectory.png)
+
+The vehicle completes the full lap at 25 m/s, tracking the reference spline closely.
+
+![Velocity Error](./img/Es3/pp/Speed2/VelocityError.png)
+
+Peak velocity error is ~0.60 m/s (2.4% of target speed).
+
+![Lateral Error](./img/Es3/pp/Speed2/LateralError.png)
+
+Lateral error peaks at ~0.65m, being well below the 1m requirement and considerably better than MPC (0.95m) at the same speed. The tracking is smooth with no oscillatory behaviour.
+
+Pure Pursuit outperforms MPC at both speeds, achieving ~30% lower lateral error at 23 m/s and ~32% lower at 25 m/s, thanks to having no internal model assumption. From 27 m/s on, this tuned version of PP becomes inefficient, failing to maintain the 1m lateral error constraint as soon as it enters the initial hairpin.
+
+### Bonus: Stanley at High Speed
+
+Stanley was also tested at 23 m/s and 25 m/s. Recall that Stanley computes the steering angle as:
+
+```python
+delta = heading_error + atan(k * cross_track_error / vx)
+```
+
+The cross-track correction term is divided by `vx`, making it progressively less effective as speed increases. This is the same limitation observed in Exercise 2 at 20 m/s, now amplified at 23–25 m/s.
+
+#### Stanley at 23 m/s
+
+![Trajectory](./img/Es3/stanley/Speed1/Trajectory.png)
+
+The vehicle completes the full lap at 23 m/s.
+
+![Velocity Error](./img/Es3/stanley/Speed1/VelocityError.png)
+
+Peak velocity error is ~0.42 m/s (1.8% of target speed).
+
+![Lateral Error](./img/Es3/stanley/Speed1/LateralError.png)
+
+Lateral error peaks at ~0.70m, worse than both PP (0.42m) and MPC (0.60m) at the same speed.
+
+#### Stanley at 25 m/s
+
+![Trajectory](./img/Es3/stanley/Speed2/Trajectory.png)
+
+The vehicle completes the full lap at 25 m/s.
+
+![Velocity Error](./img/Es3/stanley/Speed2/VelocityError.png)
+
+Peak velocity error is ~0.80 m/s (3.2% of target speed).
+
+![Lateral Error](./img/Es3/stanley/Speed2/LateralError.png)
+
+Lateral error peaks at ~1.0m, right at the boundary of the requirement. This is the worst result among all three algorithms at 25 m/s, and noteworthy less accurate behavuoir of stanley algorithm in faster simulations.
+
+Stanley degrades significantly at high speed due to the `1/vx` term attenuating the cross-track correction, acting worse than MPC with kinetic model and pp, demonstrating how this solution is better for low speed scenarios rather than higher ones.
