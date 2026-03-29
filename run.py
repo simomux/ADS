@@ -92,8 +92,11 @@ def part1_assign3():
     bag_dir    = os.path.join(assign_dir, "data")
 
     # Build se necessario
-    if not os.path.isfile(pf_node):
-        print("pf_node non trovato, eseguo build...")
+    needs_build = not os.path.isfile(pf_node)
+    if not needs_build:
+        ans = input("Già compilato. Ricompilare? [y/N] ").strip().lower()
+        needs_build = ans == "y"
+    if needs_build:
         particle_src = os.path.join(src_dir, "particle")
         build_cmd = (
             f"conda run -n {CONDA_ROS2_ENV} --no-capture-output "
@@ -115,7 +118,7 @@ def part1_assign3():
     # Terminale 1: nodo (con libpython precaricata)
     node_cmd = f"source {setup} && DYLD_INSERT_LIBRARIES={LIBPYTHON} {pf_node}"
     print(f"\n$ {node_cmd}\n")
-    subprocess.run(["zsh", "-c", node_cmd], cwd=src_dir)
+    subprocess.run(["zsh", "-c", node_cmd], cwd=assign_dir)
 
 
 # import_name -> pip_name (coincidono se il valore è None)
