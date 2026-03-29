@@ -10,7 +10,7 @@ CONDA_ROS2_ENV = "ros2"
 
 
 def _find_libpython(env_name):
-    """Trova libpython nell'environment conda tramite `conda info`."""
+    """Find libpython in the conda environment."""
     result = subprocess.run(
         ["conda", "run", "-n", env_name, "python", "-c",
          "import sysconfig, glob, os; "
@@ -27,8 +27,8 @@ def _find_libpython(env_name):
 
 LIBPYTHON = _find_libpython(CONDA_ROS2_ENV)
 if not LIBPYTHON:
-    print(f"[WARN] libpython non trovata nell'env '{CONDA_ROS2_ENV}'. "
-          "Part_1/Assignment_3 potrebbe non funzionare.")
+    print(f"[WARN] libpython not found in env '{CONDA_ROS2_ENV}'. "
+          "Part_1/Assignment_3 may not work.")
 
 
 def run(cmd, cwd=None, env=None):
@@ -42,7 +42,7 @@ def build_cmake(assignment_dir, executable, jobs=None, run_args=""):
 
     needs_build = True
     if os.path.isfile(exe_path):
-        ans = input("Già compilato. Ricompilare? [y/N] ").strip().lower()
+        ans = input("Already built. Rebuild? [y/N] ").strip().lower()
         needs_build = ans == "y"
 
     if needs_build:
@@ -51,14 +51,14 @@ def build_cmake(assignment_dir, executable, jobs=None, run_args=""):
             return
         j = f"-j{jobs}" if jobs else ""
         if subprocess.run(f"make {j}".strip(), shell=True, cwd=build_dir).returncode != 0:
-            print("make fallito.")
+            print("make failed.")
             return
 
     run(f"./{executable} {run_args}".strip(), cwd=build_dir)
 
 
 def open_terminal_macos(cmd):
-    """Apre una nuova finestra Terminal su macOS ed esegue cmd."""
+    """Open a new Terminal window on macOS and run cmd."""
     safe = cmd.replace('"', '\\"')
     subprocess.run(["osascript", "-e", f'tell app "Terminal" to do script "{safe}"'])
 
@@ -68,12 +68,12 @@ def part1_assign1():
     datasets = sorted([d for d in os.listdir(data_dir)
                        if os.path.isdir(os.path.join(data_dir, d))])
     if not datasets:
-        print("Nessun dataset trovato in data/")
+        print("No datasets found in data/")
         return
-    print("\nDataset disponibili:")
+    print("\nAvailable datasets:")
     for i, d in enumerate(datasets, 1):
         print(f"  {i}) {d}")
-    choice = input("Seleziona dataset [1]: ").strip()
+    choice = input("Select dataset [1]: ").strip()
     idx = (int(choice) - 1) if choice.isdigit() and 1 <= int(choice) <= len(datasets) else 0
     dataset_path = os.path.join(data_dir, datasets[idx])
     build_cmake(os.path.join(ROOT, "Part_1", "assignment_1"), "cluster_extraction",
@@ -91,10 +91,10 @@ def part1_assign3():
     pf_node    = os.path.join(assign_dir, "install", "pf", "lib", "pf", "pf_node")
     bag_dir    = os.path.join(assign_dir, "data")
 
-    # Build se necessario
+    # Build if needed
     needs_build = not os.path.isfile(pf_node)
     if not needs_build:
-        ans = input("Già compilato. Ricompilare? [y/N] ").strip().lower()
+        ans = input("Already built. Rebuild? [y/N] ").strip().lower()
         needs_build = ans == "y"
     if needs_build:
         particle_src = os.path.join(src_dir, "particle")
@@ -103,25 +103,39 @@ def part1_assign3():
             f"colcon build --symlink-install --base-paths {particle_src}"
         )
         if subprocess.run(build_cmd, shell=True, cwd=assign_dir).returncode != 0:
-            print("Build fallita.")
+            print("Build failed.")
             return
 
-    # Terminale 2: bag player
-    bag_cmd = (
-        f"conda activate {CONDA_ROS2_ENV} && "
-        f"source {setup} && "
-        f"ros2 bag play {bag_dir}"
-    )
-    print("\nApertura secondo terminale per la bag...")
-    open_terminal_macos(bag_cmd)
-
-    # Terminale 1: nodo (con libpython precaricata)
     node_cmd = f"source {setup} && DYLD_INSERT_LIBRARIES={LIBPYTHON} {pf_node}"
-    print(f"\n$ {node_cmd}\n")
-    subprocess.run(["zsh", "-c", node_cmd], cwd=assign_dir)
+    bag_cmd  = f"source {setup} && ros2 bag play {bag_dir}"
+
+    # Start node in background (must load map before bag starts publishing)
+    print(f"\n[node] $ {node_cmd}\n")
+    node_proc = subprocess.Popen(["zsh", "-c", node_cmd], cwd=assign_dir)
+
+    # Wait for node to load the map and initialize the viewer
+    import time
+    print("Waiting for node initialization (4s)...")
+    time.sleep(4)
+
+    # Run bag in foreground — blocks until playback is complete
+    print(f"\n[bag]  $ {bag_cmd}\n")
+    subprocess.run(["zsh", "-c", bag_cmd], cwd=assign_dir)
+
+    # Bag finished → shut down the node
+    print("\nBag finished. Shutting down node...")
+    node_proc.terminate()
+    try:
+        node_proc.wait(timeout=3)
+    except subprocess.TimeoutExpired:
+        node_proc.kill()
+
+    # Launch plotter automatically
+    print("\nRunning plotter...")
+    subprocess.run(["python3", "plotter.py"], cwd=assign_dir)
 
 
-# import_name -> pip_name (coincidono se il valore è None)
+# import_name -> pip_name (same if value is None)
 DEPS = {
     "part2":         {"cv2": "opencv-python", "numpy": None, "matplotlib": None,
                       "gtsam": None, "open3d": None, "tqdm": None, "jupyter": None},
@@ -143,8 +157,8 @@ def _ensure_deps(key):
         return True
 
     pip_names = [DEPS[key][m] or m for m in missing]
-    print(f"Moduli mancanti: {', '.join(pip_names)}")
-    ans = input("Installare ora? [Y/n] ").strip().lower()
+    print(f"Missing modules: {', '.join(pip_names)}")
+    ans = input("Install now? [Y/n] ").strip().lower()
     if ans in ("", "y"):
         ret = subprocess.run([sys.executable, "-m", "pip", "install"] + pip_names)
         return ret.returncode == 0
@@ -154,7 +168,7 @@ def _ensure_deps(key):
 def part2():
     d = os.path.join(ROOT, "Part_2")
     if not os.path.isfile(os.path.join(d, "ba.ipynb")):
-        print("Notebook non trovato.")
+        print("Notebook not found.")
         return
     _ensure_deps("part2")
     run("jupyter notebook ba.ipynb", cwd=d)
@@ -163,7 +177,7 @@ def part2():
 def part3(n, extra_args=""):
     d = os.path.join(ROOT, "Part_3", f"Assignment_{n}")
     if not os.path.isfile(os.path.join(d, "main.py")):
-        print(f"main.py non trovato in {d}")
+        print(f"main.py not found in {d}")
         return
     _ensure_deps(f"part3_assign{n}")
     run(f"python main.py {extra_args}".strip(), cwd=d)
@@ -186,7 +200,7 @@ MENU = """
 ║    6) Assignment 2 — Control (PID/PP/MPC)    ║
 ║    7) Assignment 3 — Frenet Planner          ║
 ╠══════════════════════════════════════════════╣
-║    q) Esci                                   ║
+║    q) Quit                                   ║
 ╚══════════════════════════════════════════════╝
 """
 
@@ -203,8 +217,8 @@ def _make_actions(extra_args=""):
 
 
 if __name__ == "__main__":
-    # Uso: python run.py [numero] [args extra per lo script]
-    # Es:  python run.py 6 --speed 25
+    # Usage: python run.py [number] [extra args for the script]
+    # e.g.:  python run.py 6 --speed 25
     if len(sys.argv) > 1:
         choice = sys.argv[1]
         extra = " ".join(sys.argv[2:])
@@ -212,17 +226,17 @@ if __name__ == "__main__":
         if action:
             action()
         else:
-            print(f"Scelta non valida: {choice}. Usa un numero da 1 a 7.")
+            print(f"Invalid choice: {choice}. Use a number from 1 to 7.")
         sys.exit(0)
 
     while True:
         print(MENU)
-        choice = input("Seleziona: ").strip().lower()
+        choice = input("Select: ").strip().lower()
         if choice in ("q", "quit", "exit"):
             break
         action = _make_actions().get(choice)
         if action:
             action()
-            input("\n[Invio per tornare al menu]")
+            input("\n[Press Enter to return to menu]")
         else:
-            print("Scelta non valida.")
+            print("Invalid choice.")
