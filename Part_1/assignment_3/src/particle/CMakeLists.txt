@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.16)
 project(pf)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 17)
@@ -30,6 +30,7 @@ include_directories(
 )
 # Create executable
  add_executable(${PROJECT_NAME}_node src/Renderer.cpp src/particle_filter.cpp src/main.cpp)
+ target_compile_options(${PROJECT_NAME}_node PRIVATE -Wno-deprecated-declarations)
 
 
 ament_target_dependencies(${PROJECT_NAME}_node
