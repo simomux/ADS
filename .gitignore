@@ -17,3 +17,5 @@ Part_1/**/log
 Part_1/Lab_Examples/**
 
 **/__pycache__/
+
+Part_2/.ipynb_checkpoints/
