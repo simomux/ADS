@@ -5,6 +5,7 @@
 #include <math.h>
 #include "particle/particle_filter.h"
 #include <pcl/common/transforms.h>
+#include <pcl/common/common.h>
 #include "Renderer.hpp"
 #include <pcl/filters/voxel_grid.h>
 #include <particle/helper_cloud.h>
@@ -14,7 +15,7 @@
 * TODO
 * Define the proper number of particles
 */
-#define NPARTICLES 0
+#define NPARTICLES 200
 #define circleID "circle_id"
 #define reflectorID "reflector_id"
 
@@ -34,7 +35,7 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_particles(new pcl::PointCloud<pcl::Poi
 * TODO
 * Define the proper noise values
 */
-double sigma_init [3] = {0, 0, 0};  //[x,y,theta] initialization noise. 
+double sigma_init [3] = {0.5, 0.5, 0.1};  //[x,y,theta] initialization noise.
 double sigma_pos [3]  = {0.05, 0.05, 0.05}; //[x,y,theta] movement noise. Try values between [0.5 and 0.01]
 double sigma_landmark [2] = {0.4, 0.4};     //[x,y] sensor measurement noise. Try values between [0.5 and 0.1]
 std::vector<Color> colors = {Color(1,0,0), Color(1,1,0), Color(0,0,1), Color(1,0,1), Color(0,1,1)};
@@ -206,9 +207,15 @@ int main(int argc,char **argv)
     Particle p(GPS_x,GPS_y,GPS_theta);
     best_particles.push_back(p);
     
+    // Compute map boundaries from the full point cloud
+    pcl::PointXYZ map_min, map_max;
+    pcl::getMinMax3D(*cloudMap, map_min, map_max);
+    pf.map_x_boundaries = {map_min.x, map_max.x};
+    pf.map_y_boundaries = {map_min.y, map_max.y};
+
     // Init the particle filter
-    pf.init(GPS_x, GPS_y, GPS_theta, sigma_init, NPARTICLES);
-    //pf.init_random(sigma_init,NPARTICLES);
+    // pf.init(GPS_x, GPS_y, GPS_theta, sigma_init, NPARTICLES);
+    pf.init_random(sigma_init, NPARTICLES);
 
     // Render all the particles
     for(int i=0;i<NPARTICLES;i++){
