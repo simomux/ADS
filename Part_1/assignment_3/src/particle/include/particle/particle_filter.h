@@ -2,6 +2,7 @@
 #define PARTICLE_FILTER_H_
 
 #include "particle/helper_functions.h"
+#include <utility>
 
 struct Particle {
 
@@ -32,7 +33,11 @@ class ParticleFilter {
 	std::vector<double> weights;
 	
 public:
-	
+
+	// Map boundaries used by init_random — set from main before calling init_random
+	std::pair<double,double> map_x_boundaries = {-10.0, 11.0};
+	std::pair<double,double> map_y_boundaries = { -5.0, 19.0};
+
 	// Set of current particles
 	std::vector<Particle> particles;
 
