@@ -8,6 +8,10 @@
 
 ### Requirements
 
+> [!NOTE]
+> **This is the general setup for installing ROS2 and testing on linux distros. In my case I use MacOS and the install is detailed in the repo README**
+>
+
 - ROS2 (command depends on your Linux distribution)
 - Example for Ubuntu 24:
 
