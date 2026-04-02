@@ -95,6 +95,23 @@ uv run python run.py 6 --speed 25
 
 ### Prerequisites
 
+#### Why two environments?
+
+This repo uses two separate environment managers, each handling what it does best:
+
+| | uv (`.venv/`) | conda (`ros2`) |
+| - | ------------- | -------------- |
+| **Used for** | Part 2, Part 3, plotter | Part 1 — Assignment 3 |
+| **Package source** | PyPI | conda-forge / RoboStack |
+| **Why** | Fast, reproducible Python env | ROS 2 packages don't exist on PyPI |
+
+[Pixi](https://pixi.sh) would unify the two into a single tool (it handles both PyPI and conda-forge), but uv was chosen here for the Python side to experiment with it.
+
+ROS 2 packages (`ros-humble-*`) are distributed exclusively as conda packages via [RoboStack](https://robostack.github.io). They include compiled C++ middleware, DDS bindings, and message definitions that have no pip equivalent. 
+
+RoboStack is also the only viable way to run ROS 2 natively on macOS ARM: the official ROS 2 builds don't ship binaries for Apple Silicon, building from source is fragile due to LLVM/brew incompatibilities, and Docker on Apple Silicon runs x86 images under emulation with significant overhead. 
+
+
 #### Python dependencies (Part 2 & Part 3)
 
 Install [uv](https://docs.astral.sh/uv/getting-started/installation/), then from the repo root:
