@@ -73,8 +73,8 @@ Optimal trajectory generation in **Frenet coordinates** using quintic/quartic po
 All assignments can be launched from the repo root with a single script (MacOS only):
 
 ```bash
-python run.py
-python run.py <1-7> # Run a specific assignment
+uv run python run.py
+uv run python run.py <1-7>  # Run a specific assignment
 ```
 
 | # | Assignment |
@@ -90,10 +90,20 @@ python run.py <1-7> # Run a specific assignment
 Extra arguments are forwarded to the underlying script (Part 3 only):
 
 ```bash
-python run.py 6 --speed 25
+uv run python run.py 6 --speed 25
 ```
 
 ### Prerequisites
+
+#### Python dependencies (Part 2 & Part 3)
+
+Install [uv](https://docs.astral.sh/uv/getting-started/installation/), then from the repo root:
+
+```bash
+uv sync
+```
+
+This creates a `.venv/` with all required packages (`numpy`, `matplotlib`, `opencv-python`, `gtsam`, `open3d`, `tqdm`, `jupyter`, `casadi`) pinned to Python 3.11.
 
 #### Part 1 — Assignment 1 & 2 (C++ / PCL)
 
@@ -120,16 +130,6 @@ mamba create -n ros2 python=3.11 \
   gflags
 ```
 
-The script builds the node automatically if not already built, opens a second Terminal window to play the bag, and handles the `DYLD_INSERT_LIBRARIES` workaround required on macOS for ROS 2 Python bindings.
-
-#### Part 2 — Visual Odometry (Jupyter)
-
-Python dependencies are checked automatically and installed via pip if missing:
-`opencv-python`, `numpy`, `matplotlib`, `gtsam`, `open3d`, `tqdm`, `jupyter`
-
-#### Part 3 — Control & Planning (Python)
-
-Python dependencies are checked automatically and installed via pip if missing.
-Assignment 2 and 3 additionally requires `casadi` for MPC.
+The script builds the node automatically if not already built and handles the `DYLD_INSERT_LIBRARIES` workaround required on macOS for ROS 2 Python bindings.
 
 ---

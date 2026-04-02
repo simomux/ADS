@@ -132,37 +132,8 @@ def part1_assign3():
 
     # Launch plotter automatically
     print("\nRunning plotter...")
-    subprocess.run(["python3", "plotter.py"], cwd=assign_dir)
+    subprocess.run([sys.executable, "plotter.py"], cwd=assign_dir)
 
-
-# import_name -> pip_name (same if value is None)
-DEPS = {
-    "part2":         {"cv2": "opencv-python", "numpy": None, "matplotlib": None,
-                      "gtsam": None, "open3d": None, "tqdm": None, "jupyter": None},
-    "part3_assign1": {"numpy": None, "matplotlib": None},
-    "part3_assign2": {"numpy": None, "matplotlib": None, "casadi": None},
-    "part3_assign3": {"numpy": None, "matplotlib": None},
-}
-
-
-def _ensure_deps(key):
-    missing = []
-    for import_name in DEPS[key]:
-        try:
-            __import__(import_name)
-        except ImportError:
-            missing.append(import_name)
-
-    if not missing:
-        return True
-
-    pip_names = [DEPS[key][m] or m for m in missing]
-    print(f"Missing modules: {', '.join(pip_names)}")
-    ans = input("Install now? [Y/n] ").strip().lower()
-    if ans in ("", "y"):
-        ret = subprocess.run([sys.executable, "-m", "pip", "install"] + pip_names)
-        return ret.returncode == 0
-    return False
 
 
 def part2():
@@ -170,7 +141,6 @@ def part2():
     if not os.path.isfile(os.path.join(d, "ba.ipynb")):
         print("Notebook not found.")
         return
-    _ensure_deps("part2")
     run("jupyter notebook ba.ipynb", cwd=d)
 
 
@@ -179,7 +149,6 @@ def part3(n, extra_args=""):
     if not os.path.isfile(os.path.join(d, "main.py")):
         print(f"main.py not found in {d}")
         return
-    _ensure_deps(f"part3_assign{n}")
     run(f"python main.py {extra_args}".strip(), cwd=d)
 
 
