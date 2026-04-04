@@ -93,7 +93,7 @@ These values are used by `plotter.py`.
   - More scenarios and originality can improve the grade.
 
 - Implement your own resampling method and explain it (2 points)
-  - Reference: <https://bisite.usal.es/archivos/resampling_methods_for_particle_filtering_classification_implementation_and_strategies.pdf>
+  - Reference: <https://www.researchgate.net/publication/274404127_Resampling_Methods_for_Particle_Filtering_Classification_implementation_and_strategies>
 
 - Implement additional functionality on top of the PF (3+ points)
   - Alternative data association technique
