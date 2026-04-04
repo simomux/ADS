@@ -147,7 +147,7 @@ void PointCloudCb(const sensor_msgs::msg::PointCloud2::SharedPtr cloud_msg){
     // Show the particles in the map
     showPCstatus(cloud_particles,particles);
     renderer.removeShape(circleID+std::to_string(NPARTICLES+1));
-    renderer.addCircle(best_particles.back().x, best_particles.back().y, circleID+std::to_string(NPARTICLES+1), 0.3,1,0,0);
+    renderer.addCircle(best_particles.back().x, best_particles.back().y, circleID+std::to_string(NPARTICLES+1), 0.3,0,1,0);
 
     // Log the execution time
     t_end = std::chrono::high_resolution_clock::now();
