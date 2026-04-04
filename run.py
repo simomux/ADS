@@ -84,12 +84,22 @@ def part1_assign2():
     build_cmake(os.path.join(ROOT, "Part_1", "assignment_2"), "main", jobs=os.cpu_count())
 
 
-def part1_assign3():
+def part1_assign3(extra_args=""):
     assign_dir = os.path.join(ROOT, "Part_1", "assignment_3")
     src_dir    = os.path.join(assign_dir, "src")
     setup      = os.path.join(assign_dir, "install", "setup.zsh")
     pf_node    = os.path.join(assign_dir, "install", "pf", "lib", "pf", "pf_node")
     bag_dir    = os.path.join(assign_dir, "data")
+
+    # Split --plot-only from args forwarded to plotter.py
+    args_list   = extra_args.split()
+    plot_only   = "--plot-only" in args_list
+    plotter_args = [a for a in args_list if a != "--plot-only"]
+
+    if plot_only:
+        print("\nRunning plotter...")
+        subprocess.run([sys.executable, "plotter.py"] + plotter_args, cwd=assign_dir)
+        return
 
     # Build if needed
     needs_build = not os.path.isfile(pf_node)
@@ -132,7 +142,7 @@ def part1_assign3():
 
     # Launch plotter automatically
     print("\nRunning plotter...")
-    subprocess.run([sys.executable, "plotter.py"], cwd=assign_dir)
+    subprocess.run([sys.executable, "plotter.py"] + plotter_args, cwd=assign_dir)
 
 
 
@@ -177,7 +187,7 @@ def _make_actions(extra_args=""):
     return {
         "1": part1_assign1,
         "2": part1_assign2,
-        "3": part1_assign3,
+        "3": lambda: part1_assign3(extra_args),
         "4": part2,
         "5": lambda: part3(1, extra_args),
         "6": lambda: part3(2, extra_args),
