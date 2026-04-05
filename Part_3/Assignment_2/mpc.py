@@ -2,13 +2,153 @@ from cubic_spline_planner import *
 from casadi import *
 from casadi.tools import *
 
-# MPC time
+# Kinematic MPC horizon (used by casadi_model / opt_step)
 T =  1.0 # Horizon length in seconds
 dt = 0.05 # Horizon timesteps
 N = int(T/dt) # Horizon total points
 
+# Dynamic MPC horizon (used by casadi_dynamic_model / opt_step_dynamic)
+T_dyn  = 1.0
+dt_dyn = 0.05
+N_dyn  = int(T_dyn / dt_dyn)
+
 max_steer = 3.14  # Maximum steering angle in radians
 min_steer = -3.14  # Minimum steering angle in radians
+
+solver_dyn = None   # built once in casadi_dynamic_model()
+prev_u_dyn = None   # warm-start: optimal solution from previous step
+
+
+def casadi_dynamic_model():
+    global F_dyn, solver_dyn
+
+    u  = MX.sym("u", 1)   # steer
+    ax = MX.sym("ax", 1)  # longitudinal acceleration
+
+    # Vehicle parameters
+    Lf = 1.156
+    Lr = 1.42
+    L = Lf + Lr
+    m  = 1200
+    Iz = 1792
+
+    # Pacejka Magic Formula coefficients (B, C, D, E)
+    B = 7.1433; C = 1.3507; D = 1.0489; E = -0.0074722
+
+    # Nominal vertical loads (static weight distribution)
+    Fz_f = (Lr / L) * m * 9.81   # front axle
+    Fz_r = (Lf / L) * m * 9.81   # rear axle
+
+    # State variable
+    x  = MX.sym("x", 6)
+    theta = x[2]
+    vx    = x[3]
+    vy    = x[4]
+    r     = x[5]
+    delta = u[0]
+
+    # Tire slip angles
+    vx_safe = fmax(0.5, vx)
+    alpha_f = delta - atan((vy + Lf * r) / vx_safe)
+    alpha_r = -atan((vy - Lr * r) / vx_safe)
+
+    # Pacejka lateral forces
+    Fyf = Fz_f * D * sin(C * atan(B*alpha_f - E*(B*alpha_f - atan(B*alpha_f))))
+    Fyr = Fz_r * D * sin(C * atan(B*alpha_r - E*(B*alpha_r - atan(B*alpha_r))))
+
+    # Equations of motion
+    xdot = vertcat(
+        vx * cos(theta) - vy * sin(theta),              # dx/dt
+        vx * sin(theta) + vy * cos(theta),              # dy/dt
+        r,                                              # dtheta/dt = r
+        ax + r * vy - Fyf * sin(delta) / m,             # dvx/dt
+        (Fyf * cos(delta) + Fyr) / m - vx * r,          # dvy/dt
+        (Fyf * Lf * cos(delta) - Fyr * Lr) / Iz         # dr/dt
+    )
+
+    f_dyn = Function('f_dyn', [x, u, ax], [xdot])
+
+    # RK4 integration
+    k1 = f_dyn(x,                   u, ax)
+    k2 = f_dyn(x + dt_dyn/2 * k1,  u, ax)
+    k3 = f_dyn(x + dt_dyn/2 * k2,  u, ax)
+    k4 = f_dyn(x + dt_dyn   * k3,  u, ax)
+    x_next = x + (dt_dyn / 6) * (k1 + 2*k2 + 2*k3 + k4)
+
+    F_dyn = Function('F_dyn', [x, u, ax], [x_next])
+
+    # Parametrising the initial state and targets avoids recompiling the symbolic graph and IPOPT solver at every step.
+    P  = MX.sym("P", 6 + 1 + N_dyn * 3)
+    Us = MX.sym("U", N_dyn)
+
+    X_sym  = P[0:6]
+    ax_sym = P[6]
+    J = 0
+    for k in range(N_dyn):
+        X_sym = F_dyn(X_sym, vertcat(Us[k]), vertcat(ax_sym))
+        tx   = P[7 + k*3]
+        ty   = P[7 + k*3 + 1]
+        tyaw = P[7 + k*3 + 2]
+        J += 150.0 * (X_sym[0] - tx)**2
+        J += 150.0 * (X_sym[1] - ty)**2
+        J +=  20.0 * (X_sym[2] - tyaw)**2
+
+    J += mtimes(Us.T, Us) * 100000.0
+
+    # Penalty on steering rate between consecutive steps (smoothness).
+    for k in range(N_dyn - 1):
+        J += 5000.0 * (Us[k+1] - Us[k])**2
+
+    nlp = {'x': Us, 'f': J, 'p': P}
+    opts = {
+        "ipopt.tol": 1e-3,
+        "ipopt.acceptable_tol": 1e-2,
+        "ipopt.acceptable_iter": 5,
+        "ipopt.max_iter": 20,
+        "ipopt.print_level": 0,
+        "expand": True,
+    }
+    solver_dyn = nlpsol("solver_dyn", "ipopt", nlp, opts)
+
+
+def opt_step_dynamic(targets, state, ax_input):
+    global solver_dyn, prev_u_dyn
+
+    # Numeric parameter vector
+    p_num = np.concatenate([
+        [state.x, state.y, state.theta, state.vx, state.vy, state.r],
+        [ax_input],
+        np.array(targets[:N_dyn]).flatten(),
+    ])
+
+    # Warm start
+    # At the first step use zeros; afterwards shift the previous solution by
+    # one step so IPOPT starts close to the solution → fewer iterations.
+    if prev_u_dyn is None:
+        x0 = np.zeros(N_dyn)
+    else:
+        x0 = np.roll(prev_u_dyn, -1)
+        x0[-1] = 0.0
+
+    arg = {}
+
+    # Bounds on u and initial condition
+    arg["lbx"] =  vertcat(min_steer*np.ones(N)) # lower bound for steer
+    arg["ubx"] =  vertcat(max_steer*np.ones(N)) # upper bound for steer
+    arg["x0"] =    0.0 # first guess 
+    arg["p"] = p_num
+
+    #These can be ingnored 
+    # # Bounds on g
+    # arg["lbg"] = lower_bound on a state
+    # arg["ubg"] = inf
+
+    res = solver_dyn(**arg)
+
+    ctrls = reshape(res["x"], (N,1)).T #reshape to have a row for each step
+    prev_u_dyn = ctrls
+
+    return ctrls[0][0]
 
 def casadi_model():
     global F

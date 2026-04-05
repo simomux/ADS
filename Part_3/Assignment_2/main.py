@@ -19,7 +19,7 @@ sim_time = 200.0      # Simulation duration in seconds
 steps = int(sim_time / dt)  # Simulation steps (30 seconds)
 
 # Control references
-target_speed = 25.0
+target_speed = 31.0
 
 
 # Vehicle parameters
@@ -100,7 +100,7 @@ def run_simulation(ax, steer, dt, integrator, model, steps=500):
     """ Run a simulation with the given parameters and return all states. """
 
     # Initialize the simulation
-    sim = Simulation(lf, lr, mass, Iz, dt, integrator=integrator, model=model)
+    sim = Simulation(lf, lr, mass, Iz, dt, integrator=integrator, model=model, vx0=target_speed)
 
     # Storage for state variables and slip angles
     x_vals, y_vals, theta_vals, vx_vals, vy_vals, r_vals = [], [], [], [], [], []
@@ -110,7 +110,9 @@ def run_simulation(ax, steer, dt, integrator, model, steps=500):
 
     total_distance = 0.0  # Track distance traveled along the path
 
-    casadi_model()
+
+    # casadi_model()
+    casadi_dynamic_model()
 
     for step in range(steps):
     
@@ -132,8 +134,8 @@ def run_simulation(ax, steer, dt, integrator, model, steps=500):
         prj = [ position_projected[0], position_projected[1] ]
         local_error = point_transform(prj, actual_position, sim.theta)
 
-        if(abs(local_error[1]) > 1.0):
-            print("Lateral error is higher than 1.0... ending the simulation")
+        if(abs(local_error[1]) > 1.5):
+            print("Lateral error is higher than 1.5... ending the simulation")
             print("Lateral error: ", local_error[1])
             break
 
@@ -174,7 +176,8 @@ def run_simulation(ax, steer, dt, integrator, model, steps=500):
             targets.append(trg)
             s_pos += step_increment
 
-        steer = float(opt_step(targets, sim))
+        # steer = float(opt_step(targets, sim))
+        steer = float(opt_step_dynamic(targets, sim, ax))
 
         # Make one step simulation via model integration
         sim.integrate(ax, float(steer))
