@@ -15,7 +15,7 @@ void KalmanFilter::init(double dt)
   // create a 4D state vector
   x_ = Eigen::VectorXd(4);
 
-  // TODO: Initialize the state covariance matrix P
+  // Initialize the state covariance matrix P
   P_ = Eigen::MatrixXd(4, 4);
   P_ << 9999., 0., 0., 0.,
       0., 9999., 0., 0.,
@@ -57,7 +57,6 @@ void KalmanFilter::init(double dt)
 
 void KalmanFilter::predict()
 {
-  // TODO
   // Implement Kalman Filter Predict
   x_ = F_ * x_;
   P_ = F_ * P_ * F_.transpose() + Q_;
@@ -65,7 +64,6 @@ void KalmanFilter::predict()
 
 void KalmanFilter::update(const Eigen::VectorXd &z)
 {
-  // TODO
   // Implement Kalman Filter Update
 
   Eigen::VectorXd y = z - H_ * x_;
