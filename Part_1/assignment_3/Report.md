@@ -143,3 +143,54 @@ RMSE 2.004 m, mean 0.858 m. This is the best result for random initialization. B
 The improvement over NN is consistent with Scenario 3: once converged, stricter data association very subtly improves tracking quality.
 
 The main takeaway is that Mahalanobis gating requires the filter to be already converged to be beneficial.
+
+---
+
+## Scenario 5 - Systematic Resampling, Guided Init, N = 200
+
+Systematic resampling replaces the resampling wheel. Instead of N independent random draws, a single value `u ~ Uniform(0, 1/N)` is drawn and N equally-spaced points `u, u+1/N, ..., u+(N-1)/N` are placed on the normalized cumulative weight distribution. This guarantees that a particle with weight `w_i` is selected at least `floor(N·w_i)` times, reducing resampling variance from O(1/N) to O(1/N²).
+
+### S5.1 - NN + Systematic resampling
+
+| Parameter | Value |
+| --- | --- |
+| Initialization | GPS prior at (2, 1, -1) |
+| N particles | 200 |
+| Data association | Nearest Neighbor |
+| Resampling | Systematic |
+
+![Scenario 5.1](./results/Scenario5/Scenario5.1.png)
+
+![Scenario 5.1 overlap](./results/Scenario5/Scenario5.1_overlap.png)
+
+RMSE 0.493 m, mean 0.182 m, basically identical to the wheel baseline (S1.1: 0.491 m, 0.182 m). With N=200 and guided initialization, the resampling wheel already has low variance and systematic resampling offers no measurable improvement on a single run.
+
+### S5.2 - Mahalanobis + Systematic resampling (better one)
+
+| Parameter | Value |
+| --- | --- |
+| Initialization | GPS prior at (2, 1, -1) |
+| N particles | 200 |
+| Data association | Mahalanobis + chi-squared gating (99%, warm-up 100 frames) |
+| Resampling | Systematic |
+
+![Scenario 5.2](./results/Scenario5/Scenario5.2.png)
+
+![Scenario 5.2 overlap](./results/Scenario5/Scenario5.2_overlap.png)
+
+RMSE 0.478 m, mean 0.165 m. This is the best result across all guided-init scenarios. Combining both improvements yields a small additive gain over Mahalanobis alone.
+
+| Scenario | Data association | Resampling | RMSE | Mean |
+| --- | --- | --- | --- | --- |
+| S1.1 | Nearest Neighbor | Wheel | 0.491 m | 0.182 m |
+| S3.2 | Mahalanobis | Wheel | 0.482 m | 0.163 m |
+| S5.1 | Nearest Neighbor | Systematic | 0.493 m | 0.182 m |
+| S5.2 | Mahalanobis | Systematic | **0.478 m** | **0.165 m** |
+
+The dominant contribution is Mahalanobis data association. Systematic resampling adds marginal improvement on top.
+
+However, comparing the overlap plots visually, S3.2 (Mahalanobis + wheel) produces a smoother, cleaner trajectory than S5.2, despite its slightly worse RMSE.
+
+The cause of this jitter is structural: after convergence, all particles are tightly clustered near the true pose with similar weights. Systematic resampling's near-deterministic selection rotates through these near-equal-weight particles in a quasi round-robin fashion, causing the best particle to switch frequently → frame-to-frame jitter. The resampling wheel's stochastic draws instead tend to keep the same high-weight particle for longer stretches, producing a smoother trajectory.
+
+The paradox is that S5.2 still achieves better RMSE: even though it is jitterier on average, the wheel occasionally draws a genuinely low-weight particle as best particle, causing large isolated error spikes that inflate the squared error term in RMSE disproportionately. Systematic eliminates those spikes entirely.
