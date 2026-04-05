@@ -49,7 +49,7 @@ class StanleyController:
         cross_track_correction = math.atan2(self.k * cross_track_error, effective_speed)    # K * e_ct / v
 
         # Total steering angle
-        # TO-DO: Adjust the gains in order to improve the controller's tracking
+        # Adjust the gains in order to improve the controller's tracking
         # right now they are both 1.0
         delta = 1.0 * heading_error + 1.0 * cross_track_correction
 
