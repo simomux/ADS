@@ -238,30 +238,51 @@ void ParticleFilter::updateWeights(double std_landmark[],
 * This function resamples the set of particles by repopulating the particles using the weight as metric
 */
 void ParticleFilter::resample() {
-    uniform_int_distribution<int> dist_distribution(0, num_particles - 1);
-    double beta = 0.0;
     vector<double> weights;
-    int index = dist_distribution(gen);
-    vector<Particle> new_particles;
-
     for (int i = 0; i < num_particles; i++)
         weights.push_back(particles[i].weight);
 
-    double max_w = *max_element(weights.begin(), weights.end());
+    vector<Particle> new_particles;
 
-    // Range 2*max_w as per Thrun 2002 (same as in lab)
+    if (use_systematic_resampling) {
+        // Systematic resampling: single random draw u in [0, 1/N),
+        // then N equally-spaced points u, u+1/N, ..., u+(N-1)/N on the
+        // normalized CDF. Lower variance than the resampling wheel.
 
-    uniform_real_distribution<double> uni_dist(0.0, 2.0 * max_w);
+        double w_sum = accumulate(weights.begin(), weights.end(), 0.0);
+        vector<double> cumsum(num_particles);
+        cumsum[0] = weights[0] / w_sum;
+        for (int i = 1; i < num_particles; i++)
+            cumsum[i] = cumsum[i-1] + weights[i] / w_sum;
 
-    // Write here the resampling technique
+        uniform_real_distribution<double> uni_dist(0.0, 1.0 / num_particles);
+        double u = uni_dist(gen);
 
-    for (int i = 0; i < num_particles; i++) {
-        beta += uni_dist(gen);
-        while (beta > weights[index]) {
-            beta -= weights[index];
-            index = (index + 1) % num_particles;
+        int j = 0;
+        for (int i = 0; i < num_particles; i++) {
+            double target = u + (double)i / num_particles;
+            while (j < num_particles - 1 && cumsum[j] < target)
+                j++;
+            new_particles.push_back(particles[j]);
         }
-        new_particles.push_back(particles[index]);
+
+    } else {
+        // Resampling wheel: N independent draws, range 2*max_w (Thrun 2002)
+        double max_w = *max_element(weights.begin(), weights.end());
+        uniform_real_distribution<double> uni_dist(0.0, 2.0 * max_w);
+        uniform_int_distribution<int> dist_index(0, num_particles - 1);
+
+        double beta = 0.0;
+        int index = dist_index(gen);
+        for (int i = 0; i < num_particles; i++) {
+            beta += uni_dist(gen);
+            while (beta > weights[index]) {
+                beta -= weights[index];
+                index = (index + 1) % num_particles;
+            }
+            new_particles.push_back(particles[index]);
+        }
     }
+
     particles = new_particles;
 }

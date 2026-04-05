@@ -41,6 +41,9 @@ public:
 	// If true, use Mahalanobis distance + chi-squared gating instead of plain NN
 	bool use_mahalanobis = false;
 
+	// If true, use systematic resampling instead of the resampling wheel
+	bool use_systematic_resampling = false;
+
 	// Number of frames to use plain NN before switching to Mahalanobis (warm-up)
 	int mahalanobis_warmup = 100;
 

@@ -15,7 +15,7 @@
 * TODO
 * Define the proper number of particles
 */
-#define NPARTICLES 1000
+#define NPARTICLES 200
 #define circleID "circle_id"
 #define reflectorID "reflector_id"
 
@@ -215,13 +215,14 @@ int main(int argc,char **argv)
 
     // Data association mode: false = Nearest Neighbor, true = Mahalanobis + chi2 gating
     pf.use_mahalanobis = true;
+    pf.mahalanobis_warmup = 100;
 
-    // Extend warm-up for random init: NN until filter has had time to converge
-    pf.mahalanobis_warmup = 250;
+    // Resampling mode: false = resampling wheel (Thrun 2002), true = systematic resampling
+    pf.use_systematic_resampling = true;
 
     // Init the particle filter
-    // pf.init(GPS_x, GPS_y, GPS_theta, sigma_init, NPARTICLES);
-    pf.init_random(sigma_init, NPARTICLES);
+    pf.init(GPS_x, GPS_y, GPS_theta, sigma_init, NPARTICLES);
+    // pf.init_random(sigma_init, NPARTICLES);
 
     // Render all the particles 
     for(int i=0;i<NPARTICLES;i++){
