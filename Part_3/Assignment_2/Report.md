@@ -285,3 +285,63 @@ Peak velocity error is ~0.80 m/s (3.2% of target speed).
 Lateral error peaks at ~1.0m, right at the boundary of the requirement. This is the worst result among all three algorithms at 25 m/s, and noteworthy less accurate behavuoir of stanley algorithm in faster simulations.
 
 Stanley degrades significantly at high speed due to the `1/vx` term attenuating the cross-track correction, acting worse than MPC with kinetic model and pp, demonstrating how this solution is better for low speed scenarios rather than higher ones.
+
+### Bonus: Max Speed with Dynamic MPC
+
+To push beyond the limits of the kinematic MPC (which fails above 25 m/s), the internal model was replaced with a **nonlinear single-track dynamic model**. The state vector is extended to six components `[x, y, θ, vx, vy, r]` and tire forces are computed using the Pacejka Magic Formula. This allows the MPC to predict the vehicle's lateral dynamics explicitly, including tire slip and yaw rate, instead of assuming zero lateral velocity as the kinematic model does.
+
+Three speed configurations were tested, progressively relaxing the constraints to explore the physical limit of the controller.
+
+#### 29 m/s: Constraints satisfied
+
+Control weight: `60000`. Both constraints enforced: velocity error < 5% (1.45 m/s), lateral error < 1.0 m.
+
+![Trajectory](./img/Es3/max_speed/29ms/Trajectory.png)
+
+The vehicle completes the full lap at 29 m/s, with the trajectory overlapping the reference spline.
+
+![Velocity Error](./img/Es3/max_speed/29ms/VelocityError.png)
+
+Peak velocity error is ~0.8 m/s (2.8% of target speed), well within the 5% requirement (1.45 m/s).
+
+![Lateral Error](./img/Es3/max_speed/29ms/LateralError.png)
+
+Lateral error peaks at ~0.8 m in the hairpins, remaining within the 1.0 m constraint throughout the lap.
+
+At 29 m/s both constraints are fully satisfied. This is the **maximum speed achievable without any constraint relaxation** using the dynamic MPC.
+
+#### 30 m/s — Lateral error constraint relaxed to 1.5 m
+
+Control weight: `125000`. Lateral error threshold relaxed to 1.5 m; velocity error constraint unchanged at 5% (1.5 m/s).
+
+![Trajectory](./img/Es3/max_speed/30ms/Trajectory.png)
+
+The vehicle completes the full lap at 30 m/s, with the trajectory still closely following the reference spline despite the higher speed.
+
+![Velocity Error](./img/Es3/max_speed/30ms/VelocityError.png)
+
+Peak velocity error reaches ~1.05 m/s (3.5% of target speed), within the 5% requirement (1.5 m/s).
+
+![Lateral Error](./img/Es3/max_speed/30ms/LateralError.png)
+
+Lateral error peaks at ~1.0 m at the first hairpin entry and again at ~1.0 m at the second, touching but not exceeding the original 1.0 m limit in practice. The relaxed 1.5 m threshold provides the necessary margin to complete the lap without interruption.
+
+At 30 m/s the velocity constraint is met but the lateral error constraint requires relaxation to 1.5 m. The higher control weight was necessary to avoid the aggressive oscillatory steering observed at lower weights.
+
+#### 31 m/s — Boundary exploration
+
+Control weight: `100000`. Both the velocity error (~2.0 m/s, 6.5%) and lateral error (~1.5 m) exceed the original constraints.
+
+![Trajectory](./img/Es3/max_speed/31ms/Trajectory.png)
+
+The vehicle completes the full lap at 31 m/s with the trajectory visibly deviating from the reference spline in the hairpin sections.
+
+![Velocity Error](./img/Es3/max_speed/31ms/VelocityError.png)
+
+Peak velocity error reaches ~2.0 m/s (6.5% of target speed), exceeding the 5% requirement (1.55 m/s).
+
+![Lateral Error](./img/Es3/max_speed/31ms/LateralError.png)
+
+Lateral error peaks at ~1.5 m in the second hairpin, exceeding the 1.0 m constraint and close to the relaxed 1.5 m threshold.
+
+At 31 m/s both constraints are violated. This case is reported to characterize the hard physical limit of the dynamic MPC on this track: the lap is completed but at the cost of exceeding both the velocity and lateral error requirements.
