@@ -120,6 +120,34 @@ void ParticleFilter::dataAssociation(std::vector<LandmarkObs> mapLandmark, std::
 }
 
 /*
+* This function associates observations to landmarks using Mahalanobis distance
+* with chi-squared gating (99% confidence, 2 DOF: threshold = 9.210).
+* Observations for which no landmark falls within the gate are marked id = -1.
+*/
+void ParticleFilter::dataAssociationMahalanobis(std::vector<LandmarkObs> mapLandmark, std::vector<LandmarkObs>& observations, double sig_x, double sig_y) {
+
+    // chi-squared 99% confidence threshold for 2 DOF
+    const double chi2_gate = 9.210;
+
+    for (int i = 0; i < (int)observations.size(); i++) {
+        double min_d2 = numeric_limits<double>::max();
+        observations[i].id = -1;  // default: no valid association
+
+        for (int j = 0; j < (int)mapLandmark.size(); j++) {
+            double dx = observations[i].x - mapLandmark[j].x;
+            double dy = observations[i].y - mapLandmark[j].y;
+            double d2 = (dx * dx) / (sig_x * sig_x) + (dy * dy) / (sig_y * sig_y);
+
+            if (d2 < min_d2) {
+                min_d2 = d2;
+                if (d2 < chi2_gate)
+                    observations[i].id = mapLandmark[j].id;
+            }
+        }
+    }
+}
+
+/*
 * This function transform a local (vehicle) observation into a global (map) coordinates
 * Input:
 *  observation   - A single landmark observation
@@ -163,16 +191,31 @@ void ParticleFilter::updateWeights(double std_landmark[],
         for (int j = 0; j < (int)observations.size(); j++)
             transformed_observations.push_back(transformation(observations[j], particles[i]));
 
-        // Associate each transformed observation to the nearest map landmark
-        dataAssociation(mapLandmark, transformed_observations);
+        // Associate each transformed observation to a map landmark.
+        // During warm-up always use plain NN regardless of use_mahalanobis.
+        bool mahal_active = use_mahalanobis && (frames_processed >= mahalanobis_warmup);
+        if (mahal_active)
+            dataAssociationMahalanobis(mapLandmark, transformed_observations,
+                                       std_landmark[0], std_landmark[1]);
+        else
+            dataAssociation(mapLandmark, transformed_observations);
 
         particles[i].weight = 1.0;
 
-        // Compute the probability
-		//The particles final weight can be represented as the product of each measurement’s Multivariate-Gaussian probability density
-		// We compute basically the distance between the observed landmarks and the landmarks in range from the position of the particle
+        // Minimum weight assigned to gated-out observations: gaussian evaluated at the gate boundary
+        const double w_gate_boundary =
+            exp(-9.210 / 2.0) / (2 * M_PI * std_landmark[0] * std_landmark[1]);
 
-        for (int k = 0; k < transformed_observations.size(); k++) {
+        // Compute the probability
+        // The particle’s final weight is the product of each measurement’s Multivariate-Gaussian probability density.
+
+        for (int k = 0; k < (int)transformed_observations.size(); k++) {
+            // No landmark within the gate: assign boundary-level weight
+            if (transformed_observations[k].id == -1) {
+                particles[i].weight *= w_gate_boundary;
+                continue;
+            }
+
             double obs_x = transformed_observations[k].x;
             double obs_y = transformed_observations[k].y;
             double l_x = 0, l_y = 0;
@@ -182,12 +225,13 @@ void ParticleFilter::updateWeights(double std_landmark[],
                     l_y = mapLandmark[p].y;
                 }
             }
-            double w = exp(-(pow(l_x - obs_x, 2) / (2 * pow(std_landmark[0], 2)) 
+            double w = exp(-(pow(l_x - obs_x, 2) / (2 * pow(std_landmark[0], 2))
                         + pow(l_y - obs_y, 2) / (2 * pow(std_landmark[1], 2))))
                         / (2 * M_PI * std_landmark[0] * std_landmark[1]);
             particles[i].weight *= w;
         }
     }
+    frames_processed++;
 }
 
 /*

@@ -38,6 +38,15 @@ public:
 	std::pair<double,double> map_x_boundaries = {-10.0, 11.0};
 	std::pair<double,double> map_y_boundaries = { -5.0, 19.0};
 
+	// If true, use Mahalanobis distance + chi-squared gating instead of plain NN
+	bool use_mahalanobis = false;
+
+	// Number of frames to use plain NN before switching to Mahalanobis (warm-up)
+	int mahalanobis_warmup = 100;
+
+	// Internal frame counter incremented by updateWeights
+	int frames_processed = 0;
+
 	// Set of current particles
 	std::vector<Particle> particles;
 
@@ -88,6 +97,14 @@ public:
 	 * @param observations Vector of landmark observations
 	 */
 	void dataAssociation(std::vector<LandmarkObs> predicted, std::vector<LandmarkObs>& observations);
+
+	/**
+	 * dataAssociationMahalanobis Associates observations to landmarks using
+	 * Mahalanobis distance with chi-squared gating (95% confidence, 2 DOF).
+	 * Observations outside the gate are marked with id = -1.
+	 */
+	void dataAssociationMahalanobis(std::vector<LandmarkObs> mapLandmark,
+	        std::vector<LandmarkObs>& observations, double sig_x, double sig_y);
 	
 	/**
 	 * updateWeights Updates the weights for each particle based on the likelihood of the 

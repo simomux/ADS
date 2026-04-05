@@ -213,11 +213,17 @@ int main(int argc,char **argv)
     pf.map_x_boundaries = {map_min.x, map_max.x};
     pf.map_y_boundaries = {map_min.y, map_max.y};
 
+    // Data association mode: false = Nearest Neighbor, true = Mahalanobis + chi2 gating
+    pf.use_mahalanobis = true;
+
+    // Extend warm-up for random init: NN until filter has had time to converge
+    pf.mahalanobis_warmup = 250;
+
     // Init the particle filter
     // pf.init(GPS_x, GPS_y, GPS_theta, sigma_init, NPARTICLES);
     pf.init_random(sigma_init, NPARTICLES);
 
-    // Render all the particles
+    // Render all the particles 
     for(int i=0;i<NPARTICLES;i++){
         pcl::PointXYZ point;
         point.x = pf.particles[i].x;
