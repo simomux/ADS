@@ -66,7 +66,7 @@ The filter fails to converge with 200 particles. With ~500 m² of map area and a
 
 ![Scenario 2.2 overlap](./results/Scenario2/Scenario2.2_overlap.png)
 
-Increasing to 1000 particles produces a clear improvement. The filter converges to the correct region after ~400 frames and then closely tracks the reference trajectory, with per-frame error dropping to well below 0.5 m for the majority of the run. Overall RMSE: 2.011 m, mean: 0.880 m - both dominated by the long convergence phase at the start.
+Increasing to 1000 particles produces a clear improvement. The filter converges to the correct region after ~250 frames and then closely tracks the reference trajectory, with per-frame error dropping to well below 0.5 m for the majority of the run. Overall RMSE: 2.011 m, mean: 0.880 m - both dominated by the long convergence phase at the start.
 
 ### S2 - Trajectory analysis
 
@@ -75,3 +75,71 @@ Further experiments with N = 2500 (S2.3) and N = 5000 (S2.4) were conducted but 
 The failure at higher N is not purely algorithmic: each particle adds computation time, and since `delta_t` in the prediction step is measured as real wall-clock time, excessive processing latency causes the bicycle model to predict large position jumps, triggering filter divergence. This creates a hard computational budget constraint for this implementation.
 
 The non-monotone behaviour (N=1000 converges, N=2500 does not) also reflects the stochastic nature of random initialization - whether the filter converges depends on whether at least one particle happens to start near the true pose, which is not guaranteed for any fixed N.
+
+---
+
+## Scenario 3 - Mahalanobis Data Association, Guided Init, N = 200
+
+### S3 - Configuration
+
+| Parameter | Value |
+| --- | --- |
+| Initialization | GPS prior at (2, 1, -1) |
+| N particles | 200 |
+| σ_init (x, y, θ) | 0.5 m, 0.5 m, 0.1 rad |
+| σ_pos (x, y, θ) | 0.05 m, 0.05 m, 0.05 rad |
+| σ_landmark (x, y) | 0.4 m, 0.4 m |
+| Data association | Mahalanobis + chi-squared gating (99%, warm-up 100 frames) |
+| Resampling | Resampling wheel |
+
+The data association is replaced with Mahalanobis distance with chi-squared gating at the 99% confidence level (threshold 9.210).
+
+An observation is associated to the nearest landmark only if its Mahalanobis distance falls within the gate; otherwise it is rejected and the particle receives a boundary-level weight penalty (`exp(-9.21/2) / (2π σ²)`).
+
+A warm-up phase of 100 frames uses plain Nearest Neighbor to allow the filter to converge before gating is enforced. Number of frames was determined just from trial and error.
+
+### S3.1 - Without warm-up (failed attempt)
+
+![Scenario 3.1](./results/Scenario3/Scenario3.1.png)
+
+![Scenario 3.1 overlap](./results/Scenario3/Scenario3.1_overlap.png)
+
+Without the warm-up phase, the gate immediately rejects most observations during the first frames, with particles falling outside the ~1.2 m gate radius. All weights collapse and the filter diverges (RMSE: 8.563 m).
+
+### S3.2 - With warm-up (best result)
+
+![Scenario 3.2](./results/Scenario3/Scenario3.2.png)
+
+![Scenario 3.2 overlap](./results/Scenario3/Scenario3.2_overlap.png)
+
+With the 100-frame warm-up the filter converges normally and then Mahalanobis gating takes over.
+
+Results slighly improve over the NN baseline: RMSE 0.482 m (vs 0.491 m), mean error 0.163 m (vs 0.182 m). The improvement is most visible in the right-hand curve of the trajectory (y ≈ 10–12 m in the overlap plot).
+
+---
+
+## Scenario 4 - Mahalanobis Data Association, Random Init, N = 1000
+
+Same configuration as S2.2 (random init, N=1000) but with Mahalanobis data association and a 250-frame warm-up, matching the convergence time observed in S2.2.
+
+Two warm-up durations were tested to find when Mahalanobis should activate relative to the convergence point (~250 frames).
+
+### S4.1 - warm-up = 400 frames (Mahalanobis never activates)
+
+![Scenario 4.1](./results/Scenario4/Scenario4.1.png)
+
+![Scenario 4.1 overlap](./results/Scenario4/Scenario4.1_overlap.png)
+
+RMSE 2.036 m, mean 0.888 m, being marginally worse than plain NN (S2.2). Since the warm-up exceeds the convergence time, Mahalanobis never activates; this run is effectively identical to S2.2 and confirms the baseline.
+
+### S4.2 - warm-up = 250 frames (Mahalanobis activates post-convergence)
+
+![Scenario 4.2](./results/Scenario4/Scenario4.2.png)
+
+![Scenario 4.2 overlap](./results/Scenario4/Scenario4.2_overlap.png)
+
+RMSE 2.004 m, mean 0.858 m. This is the best result for random initialization. By aligning the warm-up cutoff with the actual convergence point, Mahalanobis takes over exactly when the particles are already near the true pose and gating can be effective.
+
+The improvement over NN is consistent with Scenario 3: once converged, stricter data association very subtly improves tracking quality.
+
+The main takeaway is that Mahalanobis gating requires the filter to be already converged to be beneficial.
