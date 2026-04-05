@@ -67,7 +67,6 @@ Optimal trajectory generation in **Frenet coordinates** using quintic/quartic po
 
 **Stack:** Python, NumPy, Matplotlib
 
-
 ## Running the assignments
 
 All assignments can be launched from the repo root with a single script (MacOS only):
@@ -87,10 +86,13 @@ uv run python run.py <1-7>  # Run a specific assignment
 | 6 | Part 3 — Longitudinal & Lateral Control |
 | 7 | Part 3 — Frenet Planner |
 
-Extra arguments are forwarded to the underlying script (Part 3 only):
+Extra arguments are forwarded to the underlying script:
 
 ```bash
-uv run python run.py 6 --speed 25
+uv run python run.py 6 --speed 25          # Part 3 — pass args to underlying script
+uv run python run.py 3 --plot-only         # Part 1 Assignment 3 — skip simulation, open plotter directly
+uv run python run.py 3 --rotated           # Part 1 Assignment 3 — overlaid trajectories with RMSE + 90° rotated view
+uv run python run.py 3 --plot-only --rotated  # combine both
 ```
 
 ### Prerequisites
@@ -107,10 +109,9 @@ This repo uses two separate environment managers, each handling what it does bes
 
 [Pixi](https://pixi.sh) would unify the two into a single tool (it handles both PyPI and conda-forge), but uv was chosen here for the Python side to experiment with it.
 
-ROS 2 packages (`ros-humble-*`) are distributed exclusively as conda packages via [RoboStack](https://robostack.github.io). They include compiled C++ middleware, DDS bindings, and message definitions that have no pip equivalent. 
+ROS 2 packages (`ros-humble-*`) are distributed exclusively as conda packages via [RoboStack](https://robostack.github.io). They include compiled C++ middleware, DDS bindings, and message definitions that have no pip equivalent.
 
-RoboStack is also the only viable way to run ROS 2 natively on macOS ARM: the official ROS 2 builds don't ship binaries for Apple Silicon, building from source is fragile due to LLVM/brew incompatibilities, and Docker on Apple Silicon runs x86 images under emulation with significant overhead. 
-
+RoboStack is also the only viable way to run ROS 2 natively on macOS ARM: the official ROS 2 builds don't ship binaries for Apple Silicon, building from source is fragile due to LLVM/brew incompatibilities, and Docker on Apple Silicon runs x86 images under emulation with significant overhead.
 
 #### Python dependencies (Part 2 & Part 3)
 
