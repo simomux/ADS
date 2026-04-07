@@ -1,3 +1,6 @@
+import sys
+sys.path.insert(0, '../Assignment_2')
+
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
@@ -16,11 +19,11 @@ matplotlib.use('TkAgg')  # Or 'Agg', 'Qt5Agg', etc.
 dt = 0.05         # Time step (s)
 ax = 0.0            # Constant longitudinal acceleration (m/s^2)
 steer = 0.0      # Constant steering angle (rad)
-sim_time = 67.5      # Simulation duration in seconds
+sim_time = 200      # Simulation duration in seconds
 steps = int(sim_time / dt)  # Simulation steps (30 seconds)
 
 # Control references
-target_speed = 15.0
+target_speed = 10.0
 
 # Vehicle parameters
 lf = 1.156          # Distance from COG to front axle (m)
@@ -31,12 +34,12 @@ Iz = 1792           # Yaw moment of inertia (kg*m^2)
 max_steer = 3.14  # Maximum steering angle in radians
 
 # Create instance of PID for Longitudinal Control
-long_control_pid = pid.PIDController(kp=0.001, ki=0.001, kd=0.001, output_limits=(-2, 2))
+long_control_pid = pid.PIDController(kp=1, ki=0.25, kd=0.01, output_limits=(-2, 2))
 
 # Create instance of PurePursuit, Stanley and MPC for Lateral Control
-k_pp = 0.001  # Speed proportional gain for Pure Pursuit
+k_pp = 0.3   # Speed proportional gain for Pure Pursuit
 look_ahead = 1.0  # Minimum look-ahead distance for Pure Pursuit
-k_stanley = 0.001  # Gain for cross-track error for Stanley
+k_stanley = 3  # Gain for cross-track error for Stanley
 pp_controller = purepursuit.PurePursuitController(wheelbase, max_steer)
 stanley_controller = stanley.StanleyController(k_stanley, lf, max_steer)
 
@@ -65,7 +68,7 @@ def load_path(file_path):
     return xs, ys
 
 # Load path and create a spline
-xs, ys = load_path("oval_trj.txt")
+xs, ys = load_path("../Assignment_2/oval_trj.txt")
 path_spline = cubic_spline_planner.Spline2D(xs, ys)
 
 def point_transform(trg, pose, yaw):
@@ -120,22 +123,37 @@ def run_simulation(ax, steer, dt, integrator, model, steps=500):
     """ Run a simulation with the given parameters and return all states. """
 
     # Initialize the simulation
-    sim = Simulation(lf, lr, mass, Iz, dt, integrator=integrator, model=model)
+    sim = Simulation(lf, lr, mass, Iz, dt, integrator=integrator, model=model, vx0=target_speed)
 
     # Storage for state variables and slip angles
     x_vals, y_vals, theta_vals, vx_vals, vy_vals, r_vals = [], [], [], [], [], []
     alpha_f_vals, alpha_r_vals = [], []  # Slip angles
     frenet_x, frenet_y = [], []
+    ax_vals, vx_error_vals = [], []  # Longitudinal acceleration and velocity error
+    lat_error_vals = []  # Lateral error
 
-    casadi_model()
+    total_distance = 0.0  # Track distance traveled along the path
+
+
+    # casadi_model()
+    casadi_dynamic_model()
 
     # states for Frenet-planner
-    c_speed = 0.0  # current speed [m/s]
+    c_speed = target_speed  # current speed [m/s]
     c_accel = 0.0  # current acceleration [m/ss]
     c_d = 0.0  # current lateral position [m]
     c_d_d = 0.0  # current lateral speed [m/s]
     c_d_dd = 0.0  # current lateral acceleration [m/s]
     s0 = 0.0  # current course position
+
+    fp.TARGET_SPEED = target_speed
+    fp.MAX_SPEED = target_speed
+
+    fp.K_J = 0.1
+    fp.K_T = 0.1
+    fp.K_D = 1.0
+    fp.K_LAT = 1.0
+    fp.K_LON = 1.0
 
     for step in range(steps):
     
@@ -210,7 +228,7 @@ def run_simulation(ax, steer, dt, integrator, model, steps=500):
         ####### Pure Pursuit
         # steer = 0
         # Compute the look-ahead distance
-        steer = pp_controller.compute_steering_angle(loc_trg, sim.theta, Lf)
+        #steer = pp_controller.compute_steering_angle(loc_trg, sim.theta, Lf)
         
         ###### Stanley
         #TO-DO: Move actual position (CoG) to the front axle for stanley
@@ -232,7 +250,9 @@ def run_simulation(ax, steer, dt, integrator, model, steps=500):
             trg = [ trg[0], trg[1], t_yaw ]
             targets.append(trg)
             s_pos += step_increment
-        # steer = opt_step(targets, sim)
+        # steer = float(opt_step(targets, sim))
+        steer = float(opt_step_dynamic(targets, sim, ax))
+
 
         # Make one step simulation via model integration
         sim.integrate(ax, float(steer))
@@ -247,7 +267,7 @@ def run_simulation(ax, steer, dt, integrator, model, steps=500):
 
         # Calculate slip angles for front and rear tires
         alpha_f = steer - np.arctan((sim.vy + sim.l_f * sim.r) / max(0.5, sim.vx))  # Front tire slip angle
-        alpha_r = -(np.arctan(sim.vy - sim.l_r * sim.r) / max(0.5, sim.vx))         # Rear tire slip angle
+        alpha_r = -np.arctan((sim.vy - sim.l_r * sim.r) / max(0.5, sim.vx))          # Rear tire slip angle
 
         alpha_f_vals.append(alpha_f)
         alpha_r_vals.append(alpha_r)
@@ -255,7 +275,17 @@ def run_simulation(ax, steer, dt, integrator, model, steps=500):
         frenet_x.append(frenet_path.x[0])
         frenet_y.append(frenet_path.y[0])
 
-    return x_vals, y_vals, theta_vals, vx_vals, vy_vals, r_vals, alpha_f_vals, alpha_r_vals, frenet_x, frenet_y
+        ax_vals.append(ax)
+        vx_error_vals.append(target_speed - sim.vx)
+        lat_error_vals.append(local_error[1])
+
+        # Stop simulation after one full lap
+        total_distance += sim.vx * dt
+        if total_distance >= path_spline.s[-1]:
+            print("Lap completed! Total distance:", total_distance)
+            break
+
+    return x_vals, y_vals, theta_vals, vx_vals, vy_vals, r_vals, alpha_f_vals, alpha_r_vals, frenet_x, frenet_y, ax_vals, vx_error_vals, lat_error_vals
 
 def main():
 
@@ -284,6 +314,9 @@ def main():
     alpha_r_results = [result[7] for result in all_results]
     frenet_x_results = [result[8] for result in all_results]
     frenet_y_results = [result[9] for result in all_results]
+    ax_results = [result[10] for result in all_results]
+    vx_error_results = [result[11] for result in all_results]
+    lat_error_results = [result[12] for result in all_results]
 
     # Plot comparisons for each state variable
     plot_trajectory(x_results, y_results, labels, path_spline, frenet_x_results, frenet_y_results)
@@ -293,6 +326,10 @@ def main():
     plot_comparison(r_results, labels, "Yaw Rate Comparison", "Time Step", "Yaw Rate (rad/s)")
     plot_comparison(alpha_f_results, labels, "Front Slip Angle Comparison", "Time Step", "Slip Angle (rad) - Front")
     plot_comparison(alpha_r_results, labels, "Rear Slip Angle Comparison", "Time Step", "Slip Angle (rad) - Rear")
+    plot_comparison(ax_results, labels, "Longitudinal Acceleration", "Time Step", "Acceleration (m/s^2)")
+    plot_comparison(vx_error_results, labels, "Velocity Error", "Time Step", "Velocity Error (m/s)")
+    plot_comparison(lat_error_results, labels, "Lateral Error", "Time Step", "Lateral Error (m)")
+
 
 if __name__ == "__main__":
     main()
