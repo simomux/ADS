@@ -1,22 +1,22 @@
-# Autonomous Driving Systems — Course Assignments
+# Autonomous Driving Systems - Course Assignments
 
 Assignments from my Autonomous Driving Systems class.
 
-## Part 1 — Perception & Tracking (C++ / PCL / ROS 2)
+## Part 1 - Perception & Tracking (C++ / PCL / ROS 2)
 
-### [Assignment 1 — LiDAR Object Detection via Euclidean Clustering](Part_1/assignment_1/)
+### [Assignment 1 - LiDAR Object Detection via Euclidean Clustering](Part_1/assignment_1/)
 
 3D point cloud segmentation using a custom **KD-tree** and Euclidean clustering algorithm. Detects vehicles and pedestrians from raw LiDAR scans, with voxel downsampling and bounding-box extraction.
 
 **Stack:** C++, PCL, CMake
 
-### [Assignment 2 — Multi-Object Tracking with Kalman Filter](Part_1/assignment_2/)
+### [Assignment 2 - Multi-Object Tracking with Kalman Filter](Part_1/assignment_2/)
 
 Full implementation of the **Kalman Filter** predict/update cycle for tracking multiple dynamic objects. Covers covariance tuning, data association between LiDAR clusters and existing tracklets, and track lifecycle management (init, maintenance, deletion).
 
 **Stack:** C++, PCL, CMake
 
-### [Assignment 3 — Map-Based Localization with Particle Filter](Part_1/assignment_3/)
+### [Assignment 3 - Map-Based Localization with Particle Filter](Part_1/assignment_3/)
 
 **ROS 2** node implementing a **Particle Filter** for vehicle localization against a prior map using LiDAR landmark observations. Compares random vs. guided initialization, evaluates multiple resampling strategies, and analyzes trajectory estimation error.
 
@@ -24,9 +24,9 @@ Full implementation of the **Kalman Filter** predict/update cycle for tracking m
 
 ---
 
-## Part 2 — Visual Odometry & 3D Reconstruction (Python / OpenCV / GTSAM)
+## Part 2 - Visual Odometry & 3D Reconstruction (Python / OpenCV / GTSAM)
 
-### [Assignment — Visual Odometry with Bundle Adjustment (KITTI dataset)](Part_2/)
+### [Assignment - Visual Odometry with Bundle Adjustment (KITTI dataset)](Part_2/)
 
 End-to-end **monocular visual odometry** pipeline on the KITTI dataset:
 
@@ -40,15 +40,15 @@ End-to-end **monocular visual odometry** pipeline on the KITTI dataset:
 
 ---
 
-## Part 3 — Vehicle Dynamics, Control & Planning (Python)
+## Part 3 - Vehicle Dynamics, Control & Planning (Python)
 
-### [Assignment 1 — Vehicle Modeling and Numerical Simulation](Part_3/Assignment_1/)
+### [Assignment 1 - Vehicle Modeling and Numerical Simulation](Part_3/Assignment_1/)
 
 Three progressively complex vehicle models: **kinematic bicycle**, **linear single-track**, and **nonlinear single-track** with **Pacejka Magic Formula** tyre forces. Compares Euler vs. RK4 numerical integration at different speeds and steering inputs to highlight nonlinear slip angle dynamics.
 
 **Stack:** Python, NumPy, Matplotlib
 
-### [Assignment 2 — Longitudinal & Lateral Control](Part_3/Assignment_2/)
+### [Assignment 2 - Longitudinal & Lateral Control](Part_3/Assignment_2/)
 
 Implements and benchmarks three lateral controllers on a reference oval path at 10–25 m/s:
 
@@ -61,7 +61,7 @@ Includes analysis of model-mismatch degradation at high speed and lateral-longit
 
 **Stack:** Python, NumPy, CasADi, Matplotlib
 
-### [Assignment 3 — Frenet Optimal Trajectory Planning](Part_3/Assignment_3/)
+### [Assignment 3 - Frenet Optimal Trajectory Planning](Part_3/Assignment_3/)
 
 Optimal trajectory generation in **Frenet coordinates** using quintic/quartic polynomial sampling. Evaluates a candidate set of trajectories via a multi-objective cost function (jerk, time, deviation, obstacle proximity) and selects the minimum-cost path with real-time replanning and static obstacle avoidance.
 
@@ -78,20 +78,19 @@ uv run python run.py <1-7>  # Run a specific assignment
 
 | # | Assignment |
 | - | ---------- |
-| 1 | Part 1 — Euclidean Clustering |
-| 2 | Part 1 — Kalman Filter Tracking |
-| 3 | Part 1 — Particle Filter (ROS 2) |
-| 4 | Part 2 — Visual Odometry (Jupyter) |
-| 5 | Part 3 — Vehicle Modeling |
-| 6 | Part 3 — Longitudinal & Lateral Control |
-| 7 | Part 3 — Frenet Planner |
+| 1 | Part 1 - Euclidean Clustering |
+| 2 | Part 1 - Kalman Filter Tracking |
+| 3 | Part 1 - Particle Filter (ROS 2) |
+| 4 | Part 2 - Visual Odometry (Jupyter) |
+| 5 | Part 3 - Vehicle Modeling |
+| 6 | Part 3 - Longitudinal & Lateral Control |
+| 7 | Part 3 - Frenet Planner |
 
 Extra arguments are forwarded to the underlying script:
 
 ```bash
-uv run python run.py 6 --speed 25          # Part 3 — pass args to underlying script
-uv run python run.py 3 --plot-only         # Part 1 Assignment 3 — skip simulation, open plotter directly
-uv run python run.py 3 --rotated           # Part 1 Assignment 3 — overlaid trajectories with RMSE + 90° rotated view
+uv run python run.py 3 --plot-only         # Part 1 Assignment 3 - skip simulation, open plotter directly
+uv run python run.py 3 --rotated           # Part 1 Assignment 3 - overlaid trajectories with RMSE + 90° rotated view
 uv run python run.py 3 --plot-only --rotated  # combine both
 ```
 
@@ -103,7 +102,7 @@ This repo uses two separate environment managers, each handling what it does bes
 
 | | uv (`.venv/`) | conda (`ros2`) |
 | - | ------------- | -------------- |
-| **Used for** | Part 2, Part 3, plotter | Part 1 — Assignment 3 |
+| **Used for** | Part 2, Part 3, plotter | Part 1 - Assignment 3 |
 | **Package source** | PyPI | conda-forge / RoboStack |
 | **Why** | Fast, reproducible Python env | ROS 2 packages don't exist on PyPI |
 
@@ -123,15 +122,15 @@ uv sync
 
 This creates a `.venv/` with all required packages (`numpy`, `matplotlib`, `opencv-python`, `gtsam`, `open3d`, `tqdm`, `jupyter`, `casadi`) pinned to Python 3.11.
 
-#### Part 1 — Assignment 1 & 2 (C++ / PCL)
+#### Part 1 - Assignment 1 & 2 (C++ / PCL)
 
 Built automatically by the script via CMake. Requires:
 
 - CMake ≥ 3.5
-- PCL ≥ 1.2 — install with `brew install pcl`
-- Eigen3 — install with `brew install eigen`
+- PCL ≥ 1.2 - install with `brew install pcl`
+- Eigen3 - install with `brew install eigen`
 
-#### Part 1 — Assignment 3 (ROS 2 / Particle Filter)
+#### Part 1 - Assignment 3 (ROS 2 / Particle Filter)
 
 Requires a conda environment named `ros2` set up with [RoboStack](https://robostack.github.io) (ROS 2 Humble on macOS):
 
