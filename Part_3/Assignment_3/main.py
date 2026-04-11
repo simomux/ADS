@@ -1,10 +1,12 @@
 import sys
 sys.path.insert(0, '../Assignment_2')
 
+from matplotlib.patches import Circle
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 import matplotlib
+import time
 from simulation import Simulation
 import pid
 import purepursuit
@@ -12,18 +14,18 @@ import stanley
 from mpc import *
 import cubic_spline_planner
 import math
-import frenet_optimal_trajectory as fp 
+import frenet_optimal_trajectory as fp
 matplotlib.use('TkAgg')  # Or 'Agg', 'Qt5Agg', etc.
 
 # Simulation parameters
 dt = 0.05         # Time step (s)
 ax = 0.0            # Constant longitudinal acceleration (m/s^2)
 steer = 0.0      # Constant steering angle (rad)
-sim_time = 200      # Simulation duration in seconds
+sim_time = 2000      # Simulation duration in seconds
 steps = int(sim_time / dt)  # Simulation steps (30 seconds)
 
 # Control references
-target_speed = 10.0
+target_speed = 15.0
 
 # Vehicle parameters
 lf = 1.156          # Distance from COG to front axle (m)
@@ -107,8 +109,14 @@ def plot_trajectory(x_vals, y_vals, labels, path_spline, frenet_x_results, frene
     plt.plot(spline_x, spline_y, label="Path Spline", linestyle="--", color="red")
 
     # Plot obstacles
-    if(len(ob[0]) is not 0):
+    if(len(ob[0]) != 0):
         plt.scatter(ob[:, 0], ob[:, 1], c='black', label="Obstacles", marker='x')
+
+    for obstacle in ob:
+        ax = plt.gca()
+        ax.add_patch(
+            Circle(obstacle, fp.ROBOT_RADIUS, facecolor='None', alpha=0.5, linewidth=1.5, edgecolor='black')
+        )
     
     # Customize plot
     plt.title("2D Trajectory Comparison")
@@ -130,9 +138,11 @@ def run_simulation(ax, steer, dt, integrator, model, steps=500):
     alpha_f_vals, alpha_r_vals = [], []  # Slip angles
     frenet_x, frenet_y = [], []
     ax_vals, vx_error_vals = [], []  # Longitudinal acceleration and velocity error
-    lat_error_vals = []  # Lateral error
+    lat_error_vals = []       # Lateral error w.r.t. Frenet path
+    track_lat_error_vals = [] # Lateral error w.r.t. global path spline
+    frenet_times = []         # Frenet planner execution time per step
 
-    total_distance = 0.0  # Track distance traveled along the path
+    lap_started = False   # True once the vehicle has moved away from start
 
 
     # casadi_model()
@@ -148,6 +158,25 @@ def run_simulation(ax, steer, dt, integrator, model, steps=500):
 
     fp.TARGET_SPEED = target_speed
     fp.MAX_SPEED = target_speed
+
+    fp.SIM_LOOP = sim_time
+
+    # DT=0.05 → path points ~0.5m apart at 10m/s → precise collision check
+    fp.DT = 0.05
+
+    # D_ROAD_W=0.8: np.arange(-4, 4, 0.8) = [-4.0, -3.2, -2.4, ...] never
+    # samples d=-3.0 exactly, so the planner always keeps at least 3.2+0.5=3.7m
+    # from obs at (400, 0.5). Stanley tracking error (~0.08m) leaves 3.6m clearance.
+    fp.D_ROAD_W = 0.8
+
+    # Narrow time horizon: fewer candidate paths → faster planner.
+    # np.arange(2.5, 3.0, 0.05) = 6 horizons vs np.arange(4.5, 5.0, 0.05) = 10.
+    # At 10m/s a 3s horizon covers 30m ahead — sufficient for static obstacles.
+    fp.MIN_T = 2.8
+    fp.MAX_T = 2.85
+
+    # Reduce road width to ±4m: narrower scan, fewer candidate paths, faster planner.
+    fp.MAX_ROAD_WIDTH = 4.0
 
     fp.K_J = 0.1
     fp.K_T = 0.1
@@ -165,11 +194,13 @@ def run_simulation(ax, steer, dt, integrator, model, steps=500):
 
         ############# Frenet-planner
 
+        t_frenet_start = time.time()
         frenet_path = fp.frenet_optimal_planning(
             path_spline, s0, c_speed, c_accel, c_d, c_d_d, c_d_dd, ob)
-        
+        frenet_times.append(time.time() - t_frenet_start)
+
         if(frenet_path is None):
-            print("None available paths found from Frenet...")
+            print("\nNone available paths found from Frenet...")
             break
 
         frenetpath_spline = cubic_spline_planner.Spline2D(frenet_path.x, frenet_path.y)
@@ -208,8 +239,15 @@ def run_simulation(ax, steer, dt, integrator, model, steps=500):
         ################
 
         if(abs(local_error[1]) > 4.0):
-            print("Lateral error is higher than 4.0... ending the simulation")
+            print("\nLateral error is higher than 4.0... ending the simulation")
             print("Lateral error: ", local_error[1])
+            break
+
+        # Check that the vehicle respects the 3m obstacle clearance
+        collision = any(math.hypot(sim.x - obs[0], sim.y - obs[1]) < fp.ROBOT_RADIUS for obs in ob)
+        if collision:
+            min_dist = min(math.hypot(sim.x - obs[0], sim.y - obs[1]) for obs in ob)
+            print(f"\nCollision! Vehicle at ({sim.x:.2f}, {sim.y:.2f}), closest obstacle {min_dist:.2f}m away (limit: {fp.ROBOT_RADIUS}m)")
             break
 
         # get target pose
@@ -233,25 +271,23 @@ def run_simulation(ax, steer, dt, integrator, model, steps=500):
         ###### Stanley
         #TO-DO: Move actual position (CoG) to the front axle for stanley
         # Adjust CoG position to the front axle position
-        # px_front = local_position_projected[0] + lf * math.cos(sim.theta)
-        # py_front = local_position_projected[1] + lf * math.sin(sim.theta)
-        # stanley_target = px_front, py_front, frenetpath_spline.calc_yaw(frenetpath_spline.cur_s)
-        # steer = stanley_controller.compute_steering_angle(actual_pose, stanley_target, sim.vx)
+        px_front = local_position_projected[0] + lf * math.cos(sim.theta)
+        py_front = local_position_projected[1] + lf * math.sin(sim.theta)
+        stanley_target = px_front, py_front, frenetpath_spline.calc_yaw(frenetpath_spline.cur_s)
+        steer = stanley_controller.compute_steering_angle(actual_pose, stanley_target, sim.vx)
 
-        ###### MPC
-
-        # get future horizon targets pose
-        targets = [ ]
-        s_pos = frenetpath_spline.cur_s
-        for i in range(N):
-            step_increment = (sim.vx)*dt
-            trg = frenetpath_spline.calc_position(s_pos)
-            t_yaw = frenetpath_spline.calc_yaw(s_pos)
-            trg = [ trg[0], trg[1], t_yaw ]
-            targets.append(trg)
-            s_pos += step_increment
-        # steer = float(opt_step(targets, sim))
-        steer = float(opt_step_dynamic(targets, sim, ax))
+        ###### MPC (disabled for Exercise 1, Stanley used instead)
+        # get future horizon targets pose (use N_dyn steps matching the dynamic MPC horizon)
+        # targets = [ ]
+        # s_pos = frenetpath_spline.cur_s
+        # for i in range(N_dyn):
+        #     step_increment = (sim.vx)*dt
+        #     trg = frenetpath_spline.calc_position(s_pos)
+        #     t_yaw = frenetpath_spline.calc_yaw(s_pos)
+        #     trg = [ trg[0], trg[1], t_yaw ]
+        #     targets.append(trg)
+        #     s_pos += step_increment
+        # steer = float(opt_step_dynamic(targets, sim, ax))
 
 
         # Make one step simulation via model integration
@@ -277,15 +313,23 @@ def run_simulation(ax, steer, dt, integrator, model, steps=500):
 
         ax_vals.append(ax)
         vx_error_vals.append(target_speed - sim.vx)
-        lat_error_vals.append(local_error[1])
+        lat_error_vals.append(frenetlocal_error[1])   # lateral error w.r.t. Frenet path (as required)
+        track_lat_error_vals.append(local_error[1])   # lateral error w.r.t. global path spline
 
-        # Stop simulation after one full lap
-        total_distance += sim.vx * dt
-        if total_distance >= path_spline.s[-1]:
-            print("Lap completed! Total distance:", total_distance)
+        # Stop simulation after one full lap when veichle is within 5 meters from the start.
+        if path_spline.cur_s > path_spline.s[-1] * 0.1:
+            lap_started = True
+        if lap_started and path_spline.cur_s < 5.0:
+            print("\nLap completed! s =", path_spline.cur_s)
             break
 
-    return x_vals, y_vals, theta_vals, vx_vals, vy_vals, r_vals, alpha_f_vals, alpha_r_vals, frenet_x, frenet_y, ax_vals, vx_error_vals, lat_error_vals
+    # Frenet planner timing summary
+    if frenet_times:
+        print(f"\n[Frenet timing] steps: {len(frenet_times)} | "
+              f"avg: {np.mean(frenet_times)*1000:.2f} ms | "
+              f"total: {np.sum(frenet_times):.2f} s")
+
+    return x_vals, y_vals, theta_vals, vx_vals, vy_vals, r_vals, alpha_f_vals, alpha_r_vals, frenet_x, frenet_y, ax_vals, vx_error_vals, lat_error_vals, track_lat_error_vals
 
 def main():
 
@@ -317,6 +361,7 @@ def main():
     ax_results = [result[10] for result in all_results]
     vx_error_results = [result[11] for result in all_results]
     lat_error_results = [result[12] for result in all_results]
+    track_lat_error_results = [result[13] for result in all_results]
 
     # Plot comparisons for each state variable
     plot_trajectory(x_results, y_results, labels, path_spline, frenet_x_results, frenet_y_results)
@@ -328,7 +373,8 @@ def main():
     plot_comparison(alpha_r_results, labels, "Rear Slip Angle Comparison", "Time Step", "Slip Angle (rad) - Rear")
     plot_comparison(ax_results, labels, "Longitudinal Acceleration", "Time Step", "Acceleration (m/s^2)")
     plot_comparison(vx_error_results, labels, "Velocity Error", "Time Step", "Velocity Error (m/s)")
-    plot_comparison(lat_error_results, labels, "Lateral Error", "Time Step", "Lateral Error (m)")
+    plot_comparison(lat_error_results, labels, "Lateral Error (w.r.t. Frenet path)", "Time Step", "Lateral Error (m)")
+    plot_comparison(track_lat_error_results, labels, "Lateral Error (w.r.t. global path)", "Time Step", "Lateral Error (m)")
 
 
 if __name__ == "__main__":
