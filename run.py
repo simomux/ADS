@@ -47,7 +47,7 @@ def build_cmake(assignment_dir, executable, jobs=None, run_args=""):
 
     if needs_build:
         os.makedirs(build_dir, exist_ok=True)
-        if run("cmake -DCMAKE_PREFIX_PATH=$(brew --prefix) ..", cwd=build_dir) is not None:
+        if run("cmake -DCMAKE_PREFIX_PATH=$(brew --prefix) -DCMAKE_OSX_SYSROOT=$(xcrun --show-sdk-path) ..", cwd=build_dir) is not None:
             return
         j = f"-j{jobs}" if jobs else ""
         if subprocess.run(f"make {j}".strip(), shell=True, cwd=build_dir).returncode != 0:
