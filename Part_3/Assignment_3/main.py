@@ -25,7 +25,7 @@ sim_time = 2000      # Simulation duration in seconds
 steps = int(sim_time / dt)  # Simulation steps (30 seconds)
 
 # Control references
-target_speed = 28.0
+target_speed = 32.0
 
 # Vehicle parameters
 lf = 1.156          # Distance from COG to front axle (m)
