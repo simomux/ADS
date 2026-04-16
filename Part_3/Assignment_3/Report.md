@@ -4,25 +4,27 @@ AY: 2025-2026
 
 ## Exercise 1 - Static obstacle avoidance at low speed
 
-In this exercise the Frenet Optimal Trajectory planner is used to generate a collision-free path. The **Stanley controller** was used, since it generally has the best tradeoffs for low speed scenarios, such as the 10 m/s and 15 m/s required. Furthermore the implementation of assignment 2 was pretty precise so it's a more than suitable application. The longitudinal speed is controlled by the same PID from Assignment 2.
+In this exercise the Frenet Optimal Trajectory planner is used to generate a collision-free path. The **Stanley controller** was used, since it generally has the best tradeoffs for low speed scenarios, such as the 10 m/s and 15 m/s required. Furthermore, the implementation of Assignment 2 was pretty precise, making it a suitable choice for this application. The longitudinal speed is controlled by the same PID from Assignment 2.
 
-The initial template provided didn't actually check if the vehicle following the Frenet's spline was actually satisfying requirements, avoiding the obstacles by > 3.0m. One was implemented for testing.
+The initial template provided didn't check if the vehicle following the Frenet spline was actually satisfying requirements, avoiding the obstacles by > 3.0m. One was implemented for testing.
 
-Also a circe with `r = ROBOT_RADIUS` was added to each obstacle to check in the plot how actualy far from the obstacle the vehicle is.
+Also a circle with `r = ROBOT_RADIUS` was added to each obstacle to check in the plot how actually far from the obstacle the vehicle is.
 
-### Frenet planner — collision check issue with default `DT = 0.2`
+### Frenet planner: Default parameters
 
 With the default sampling time `DT = 0.2 s`, consecutive points on each candidate path are spaced approximately `DT × vx = 0.2 × 10 = 2 m` apart. The collision check in `check_collision` compares only these sampled points against each obstacle; it does not verify the continuous arc between them.
 
-As a result, a candidate path can pass through the 3 m obstacle radius without being detected if its closest point to the obstacle falls between two samples both located just outside the radius. This was confirmed by the trajectory plot at the first obstacle `(100, −0.5)`: the Frenet path and the vehicle both crossed inside the 3 m circle while the collision check reported no violation.
+As a result, a candidate path can pass through the 3 m obstacle radius without being detected if its closest point to the obstacle falls between two samples both located just outside the radius.
+
+This was confirmed by the trajectory plot at the first obstacle `(100, −0.5)`: the Frenet path and the vehicle both crossed inside the 3 m circle while the collision check reported no violation.
 
 ### Fix: parameter tuning
 
 Two parameters were tuned together to resolve the collision check issue:
 
-- **`DT = 0.05 s`** — reduces inter-sample spacing to ~0.5 m at 10 m/s, planner far more precise, but greatly increasing the computation cost for the simulation.
+- **`DT = 0.05 s`**: reduces inter-sample spacing to ~0.5 m at 10 m/s, making the planner far more precise, but greatly increasing the computation cost for the simulation.
 
-- **`D_ROAD_W = 0.8 m`**
+- **`D_ROAD_W = 0.8 m`**: found the right sampling width length via trial and error, using the collision check previously described and analyzing plots visually to confirm.
 
 ### Speed = 10 m/s
 
@@ -30,17 +32,17 @@ The parameters specified above are able to allow the simulator at both speeds to
 
 ![Trajectory](./img/Es1/Speed1/CorrectResults/Trajectory.png)
 
-The vehicle completes the full lap avoiding all obstacles. The trajectory (blue) closely overlaps the Frenet path (green dashed), with visible deviations from the global spline (red) only in proximity of obstacles — as expected.
+The vehicle completes the full lap avoiding all obstacles. The trajectory (blue) closely overlaps the Frenet path (green dashed), with visible deviations from the global spline (red) only in proximity of obstacles.
 
 ![1st obstacle](./img/Es1/Speed1/CorrectResults/TrajectoryObs1.png)
 ![1st obstacle](./img/Es1/Speed1/CorrectResults/TrajectoryObsRight.png)
 ![1st obstacle](./img/Es1/Speed1/CorrectResults/TrajectoryObsLeft.png)
 
-From these zoomed screenshots you can better asses the performance of the planner and controller.
+From these zoomed screenshots you can better assess the performance of the planner and controller.
 
 ![Lateral Error (w.r.t. Frenet path)](./img/Es1/Speed1/CorrectResults/LateralError.png)
 
-Lateral error w.r.t. the Frenet path peaks at ~0.20 m throughout the lap — consistent with Stanley's performance at 10 m/s from Assignment 2. The final spike is for the stopping check after completing a lap and should not be considered.
+Lateral error w.r.t. the Frenet path peaks at ~0.20 m throughout the lap, confirming Stanley's performance at 10 m/s from Assignment 2. The final spike is for the stopping check after completing a lap and should not be considered.
 
 ![Lateral Error (w.r.t. global path)](./img/Es1/Speed1/CorrectResults/TrackLateralError.png)
 
@@ -77,7 +79,7 @@ Time: 165.05 s          # same lap, identical trajectory
 paths after frenet calc: 40
 ```
 
-A far better increase, maintaining the same performance as the original tracker, but reducing by ~1/10 the simulation time and the paths computed at each step from 240 to 40.
+A significant improvement, maintaining the same performance as the original tracker, but reducing by ~10x the simulation time and the paths computed at each step from 240 to 40.
 
 ### 15 m/s
 
@@ -99,7 +101,7 @@ Lateral error w.r.t. the Frenet path peaks at ~0.20 m, as in the previous test c
 
 ![Lateral Error (w.r.t. global path)](./img/Es1/Speed2/TrackLateralError.png)
 
-Lateral error w.r.t. the global path spline peaks at ~3.2 m, closely resembling the 10m/s scenario showing that the spline computend in both cases in practically the same.
+Lateral error w.r.t. the global path spline peaks at ~3.2 m, closely resembling the 10 m/s scenario, showing that the spline computed in both cases is practically the same.
 
 ![Velocity Error](./img/Es1/Speed2/VelocityError.png)
 
@@ -115,7 +117,7 @@ Time: 109.5 s
 paths after frenet calc: 240
 ```
 
-Average planner cost: **194.84 ms/step** — essentially identical to the 10 m/s baseline, as expected: the planner cost depends on the number of candidates and their length, not on the vehicle speed.
+Average planner cost: **194.84 ms/step**, essentially identical to the 10 m/s baseline, as expected: the planner cost depends on the number of candidates and their length, not on the vehicle speed.
 
 Same aggressive collapse applied at 10 m/s:
 
