@@ -25,7 +25,7 @@ sim_time = 2000      # Simulation duration in seconds
 steps = int(sim_time / dt)  # Simulation steps (30 seconds)
 
 # Control references
-target_speed = 15.0
+target_speed = 20.0
 
 # Vehicle parameters
 lf = 1.156          # Distance from COG to front axle (m)
@@ -266,15 +266,15 @@ def run_simulation(ax, steer, dt, integrator, model, steps=500):
         ####### Pure Pursuit
         # steer = 0
         # Compute the look-ahead distance
-        #steer = pp_controller.compute_steering_angle(loc_trg, sim.theta, Lf)
+        steer = pp_controller.compute_steering_angle(loc_trg, sim.theta, Lf)
         
         ###### Stanley
         #TO-DO: Move actual position (CoG) to the front axle for stanley
         # Adjust CoG position to the front axle position
-        px_front = local_position_projected[0] + lf * math.cos(sim.theta)
-        py_front = local_position_projected[1] + lf * math.sin(sim.theta)
-        stanley_target = px_front, py_front, frenetpath_spline.calc_yaw(frenetpath_spline.cur_s)
-        steer = stanley_controller.compute_steering_angle(actual_pose, stanley_target, sim.vx)
+        # px_front = local_position_projected[0] + lf * math.cos(sim.theta)
+        # py_front = local_position_projected[1] + lf * math.sin(sim.theta)
+        # stanley_target = px_front, py_front, frenetpath_spline.calc_yaw(frenetpath_spline.cur_s)
+        # steer = stanley_controller.compute_steering_angle(actual_pose, stanley_target, sim.vx)
 
         ###### MPC (disabled for Exercise 1, Stanley used instead)
         # get future horizon targets pose (use N_dyn steps matching the dynamic MPC horizon)
