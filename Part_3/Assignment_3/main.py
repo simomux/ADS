@@ -145,8 +145,8 @@ def run_simulation(ax, steer, dt, integrator, model, steps=500):
     lap_started = False   # True once the vehicle has moved away from start
 
 
-    # casadi_model()
-    casadi_dynamic_model()
+    casadi_model()
+    # casadi_dynamic_model()
 
     # states for Frenet-planner
     c_speed = target_speed  # current speed [m/s]
@@ -266,7 +266,7 @@ def run_simulation(ax, steer, dt, integrator, model, steps=500):
         ####### Pure Pursuit
         # steer = 0
         # Compute the look-ahead distance
-        steer = pp_controller.compute_steering_angle(loc_trg, sim.theta, Lf)
+        # steer = pp_controller.compute_steering_angle(loc_trg, sim.theta, Lf)
         
         ###### Stanley
         #TO-DO: Move actual position (CoG) to the front axle for stanley
@@ -278,16 +278,16 @@ def run_simulation(ax, steer, dt, integrator, model, steps=500):
 
         ###### MPC (disabled for Exercise 1, Stanley used instead)
         # get future horizon targets pose (use N_dyn steps matching the dynamic MPC horizon)
-        # targets = [ ]
-        # s_pos = frenetpath_spline.cur_s
-        # for i in range(N_dyn):
-        #     step_increment = (sim.vx)*dt
-        #     trg = frenetpath_spline.calc_position(s_pos)
-        #     t_yaw = frenetpath_spline.calc_yaw(s_pos)
-        #     trg = [ trg[0], trg[1], t_yaw ]
-        #     targets.append(trg)
-        #     s_pos += step_increment
-        # steer = float(opt_step_dynamic(targets, sim, ax))
+        targets = [ ]
+        s_pos = frenetpath_spline.cur_s
+        for i in range(N_dyn):
+            step_increment = (sim.vx)*dt
+            trg = frenetpath_spline.calc_position(s_pos)
+            t_yaw = frenetpath_spline.calc_yaw(s_pos)
+            trg = [ trg[0], trg[1], t_yaw ]
+            targets.append(trg)
+            s_pos += step_increment
+        steer = float(opt_step(targets, sim))
 
 
         # Make one step simulation via model integration
