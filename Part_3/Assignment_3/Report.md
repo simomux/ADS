@@ -236,7 +236,7 @@ Screenshots can be consulted [here](./img/Es2/MaxSpeed/31ms).
 
 #### 32 m/s
 
-At 32 m/s the MPC with the dynamic model fails at the first hairpin turn (right side of the track, obstacles at (570, 29) and (600, 100)). The centripetal force required to follow the Frenet path exceeds the available tire grip, causing the vehicle to understeer into the obstacle clearance zone.
+At 32 m/s the MPC with the dynamic model fails at the first hairpin turn colliding with the obstacle at (600, 100). The centripetal force required to follow the Frenet path exceeds the available tire grip, causing the vehicle to understeer, and overcorrecting the trajectory into the obstacle.
 
 ![Trajectory](./img/Es2/MaxSpeed/32ms/Trajectory.png)
 
