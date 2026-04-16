@@ -25,7 +25,7 @@ sim_time = 2000      # Simulation duration in seconds
 steps = int(sim_time / dt)  # Simulation steps (30 seconds)
 
 # Control references
-target_speed = 20.0
+target_speed = 28.0
 
 # Vehicle parameters
 lf = 1.156          # Distance from COG to front axle (m)
@@ -145,8 +145,8 @@ def run_simulation(ax, steer, dt, integrator, model, steps=500):
     lap_started = False   # True once the vehicle has moved away from start
 
 
-    casadi_model()
-    # casadi_dynamic_model()
+    # casadi_model()
+    casadi_dynamic_model()
 
     # states for Frenet-planner
     c_speed = target_speed  # current speed [m/s]
@@ -287,7 +287,7 @@ def run_simulation(ax, steer, dt, integrator, model, steps=500):
             trg = [ trg[0], trg[1], t_yaw ]
             targets.append(trg)
             s_pos += step_increment
-        steer = float(opt_step(targets, sim))
+        steer = float(opt_step_dynamic(targets, sim, ax))
 
 
         # Make one step simulation via model integration
