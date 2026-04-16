@@ -135,3 +135,109 @@ paths after frenet calc: 40
 ```
 
 Same results as the 10m/s scenario, achieving a speedup of ~10x.
+
+## Exercise 2 - Static obstacle avoidance at high speed
+
+For Exercise 2 all the Frenet parameters are the same as those optimized for faster execution time in Exercise 1.
+
+### 20 m/s
+
+At 20 m/s it was required to track the path with Pure Pursuit and MPC with kinematic model from Assignment 2.
+
+#### Pure Pursuit
+
+![Trajectory](./img/Es2/Speed1/PP/Trajectory.png)
+
+The vehicle with Pure Pursuit completes an entire lap closely following the Frenet spline.
+
+![1st obstacle](./img/Es2/Speed1/PP/TrajectoryObs1.png)
+![Right obstacles](./img/Es2/Speed1/PP/TrajectoryObsRight.png)
+![Left obstacles](./img/Es2/Speed1/PP/TrajectoryObsLeft.png)
+
+All the obstacles are avoided as required.
+
+![Lateral Error (w.r.t. Frenet path)](./img/Es2/Speed1/PP/LateralError.png)
+
+Lateral error w.r.t. the Frenet path peaks at ~0.20 m (excluding the final spike due to the lap completion check).
+
+![Lateral Error (w.r.t. global path)](./img/Es2/Speed1/PP/TrackLateralError.png)
+
+Lateral error w.r.t. the global path spline peaks at ~3.5 m, still beneath the 4 m requirement.
+
+![Velocity Error](./img/Es2/Speed1/PP/VelocityError.png)
+
+Peak velocity error is ~0.21 m/s (1.05% of target speed), well within the 5% requirement.
+
+#### MPC Kinematic
+
+![Trajectory](./img/Es2/Speed1/MPC/Trajectory.png)
+
+The vehicle with MPC (kinematic model) completes the full lap following the Frenet spline.
+
+![1st obstacle](./img/Es2/Speed1/MPC/TrajectoryObs1.png)
+![Right obstacles](./img/Es2/Speed1/MPC/TrajectoryObsRight.png)
+![Left obstacles](./img/Es2/Speed1/MPC/TrajectoryObsLeft.png)
+
+All the obstacles are avoided as required.
+
+![Lateral Error (w.r.t. Frenet path)](./img/Es2/Speed1/MPC/LateralError.png)
+
+Lateral error w.r.t. the Frenet path peaks at ~0.40 m (excluding the final spike), higher and more oscillatory than Pure Pursuit.
+
+This is expected since the kinematic model does not account for slip angles, so the optimizer has a hard time anticipating the lateral dynamics at 20 m/s, as shown also in assignment 2.
+
+![Lateral Error (w.r.t. global path)](./img/Es2/Speed1/MPC/TrackLateralError.png)
+
+Lateral error w.r.t. the global path spline peaks at ~3.5 m, still beneath the 4 m requirement.
+
+![Velocity Error](./img/Es2/Speed1/MPC/VelocityError.png)
+
+Peak velocity error is ~0.21 m/s (1.05% of target speed), within the 5% requirement.
+
+### 25 m/s (MPC Dynamic)
+
+At 25 m/s the MPC was switched from the kinematic to the **dynamic model**, as permitted by the assignment, since it was shown to be the best option for fast scenarios in assignment 2.
+
+![Trajectory](./img/Es2/Speed2/Trajectory.png)
+
+The vehicle with MPC (dynamic model) completes the full lap closely following the Frenet spline.
+
+![1st obstacle](./img/Es2/Speed2/TrajectoryObs1.png)
+![Right obstacles](./img/Es2/Speed2/TrajectoryObsRight.png)
+![Left obstacles](./img/Es2/Speed2/TrajectoryObsLeft.png)
+
+All the obstacles are avoided as required.
+
+![Lateral Error (w.r.t. Frenet path)](./img/Es2/Speed2/LateralError.png)
+
+Lateral error w.r.t. the Frenet path peaks at ~0.20 m (excluding the final spike).
+
+Despite being 25% faster than the MPC kinematic test case, the dynamic model achieves a lower lateral error (~0.20 m vs ~0.40 m at 20 m/s). This confirms that the dynamic model's awareness of slip angles allows it to largely compensate for lateral dynamics.
+
+![Lateral Error (w.r.t. global path)](./img/Es2/Speed2/TrackLateralError.png)
+
+Lateral error w.r.t. the global path spline peaks at ~3.5 m, still beneath the 4 m requirement.
+
+![Velocity Error](./img/Es2/Speed2/VelocityError.png)
+
+Peak velocity error is ~0.30 m/s (1.2% of target speed), within the 5% requirement.
+
+### Bonus: Maximum speed
+
+The maximum speed was tested using MPC with the dynamic model, as it demonstrated the lowest tracking error at high speed in the previous tests.
+
+#### 31 m/s
+
+This was found to be the maximum speed at which MPC + Frenet was able to complete the full lap while respecting all constraints. The controller is stressed to its limits: lateral error w.r.t. the Frenet path peaks at ~1.0 m, the global path lateral error reaches ~4 m (at the boundary of the requirement) and velocity error peaks at ~1.3 m/s (4.2% of 31 m/s, close to the 5% limit).
+
+Interestingly, this is the same maximum speed that MPC with the dynamic model achieved when following the default spline in Assignment 2, suggesting that the physical grip is the limit of the vehicle, rather than the Frenet planner.
+
+Screenshots can be consulted [here](./img/Es2/MaxSpeed/31ms).
+
+#### 32 m/s
+
+At 32 m/s the MPC with the dynamic model fails at the first hairpin turn (right side of the track, obstacles at (570, 29) and (600, 100)). The centripetal force required to follow the Frenet path exceeds the available tire grip, causing the vehicle to understeer into the obstacle clearance zone.
+
+![Trajectory](./img/Es2/MaxSpeed/32ms/Trajectory.png)
+
+![Collision detail](./img/Es2/MaxSpeed/32ms/TrajectoryCollision.png)
