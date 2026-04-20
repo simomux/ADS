@@ -1,0 +1,18 @@
+[project]
+name = "ads-part2"
+version = "0.1.0"
+description = "ADS Part 2 - Bundle Adjustment assignment"
+requires-python = "==3.10.*"
+dependencies = [
+    "numpy==1.22.1",
+    "matplotlib==3.8.*",
+    "opencv-python",
+    "gtsam",
+    "open3d",
+    "tqdm",
+    "jupyter",
+    "ipykernel",
+]
+
+[tool.uv]
+package = false
