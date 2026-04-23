@@ -19,7 +19,8 @@ Part_1/Lab_Examples/**
 **/__pycache__/
 
 Part_2/.ipynb_checkpoints/
-Part_2/img/
+Part_2/img/machine_hall/
+Part_2/img/.metadata*
 
 # uv virtual environment
 .venv/
