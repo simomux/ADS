@@ -12,6 +12,7 @@ dependencies = [
     "tqdm",
     "jupyter",
     "ipykernel",
+    "ipympl",
 ]
 
 [tool.uv]
