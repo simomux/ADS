@@ -26,15 +26,14 @@ Full implementation of the **Kalman Filter** predict/update cycle for tracking m
 
 ## Part 2 - Visual Odometry & 3D Reconstruction (Python / OpenCV / GTSAM)
 
-### [Assignment - Visual Odometry with Bundle Adjustment (KITTI dataset)](Part_2/)
+### [Exam Project - Stereo Visual Odometry with Sliding-Window Bundle Adjustment (EuRoC MAV)](Part_2/)
 
-End-to-end **monocular visual odometry** pipeline on the KITTI dataset:
+Structure-from-Motion / Visual Odometry pipeline on the **EuRoC MAV** dataset (distorted stereo images from a hexarotor), developed in three incremental stages:
 
-- **FAST** feature detection + **Lucas-Kanade Optical Flow** for frame-to-frame tracking
-- **Essential Matrix** estimation with RANSAC and relative pose recovery
-- Incremental camera registration via **PnP + RANSAC** (6-DoF)
-- **Bundle Adjustment** with **GTSAM** (Levenberg-Marquardt optimizer, Cauchy robust noise model) to jointly refine all camera poses and 3D landmarks
-- 3D point cloud visualization with **Open3D**
+- **`ba_minimum`** - monocular SfM + offline **Bundle Adjustment**: FAST + Lucas-Kanade tracking, **Essential Matrix** bootstrap with RANSAC, incremental **PnP** registration, re-triangulation on inlier drop, batch BA with **GTSAM**
+- **`ba_medium`** - **stereo setup**: points tracked both in time (cam0→cam0) and across cameras (cam0→cam1, LK with forward-backward check). The known 11 cm baseline makes the reconstruction **metric** (no scale ambiguity, no E-matrix bootstrap); cam1 observations enter the factor graph via `body_P_sensor` without extra pose variables
+- **`ba_advanced`** - batch BA converted to **Visual Odometry**: BA solved on a **sliding window** of the last N frames, with a strong prior on the oldest pose for inter-window continuity (gauge fixing). Includes a parallel PnP-only pipeline as an honest drift baseline, per-window reprojection-RMS diagnostics, and robustness tests on MH_03/MH_05
+- Robust noise modeling (**Cauchy m-estimator**), Levenberg-Marquardt on sparse factor graphs, `.ply` export and 3D visualization with **Open3D**
 
 **Stack:** Python, OpenCV, GTSAM, Open3D
 
@@ -81,7 +80,7 @@ uv run python run.py <1-7>  # Run a specific assignment
 | 1 | Part 1 - Euclidean Clustering |
 | 2 | Part 1 - Kalman Filter Tracking |
 | 3 | Part 1 - Particle Filter (ROS 2) |
-| 4 | Part 2 - Visual Odometry (Jupyter) |
+| 4 | Part 2 - Stereo VO + Sliding-Window BA (Jupyter) |
 | 5 | Part 3 - Vehicle Modeling |
 | 6 | Part 3 - Longitudinal & Lateral Control |
 | 7 | Part 3 - Frenet Planner |
@@ -100,11 +99,15 @@ uv run python run.py 3 --plot-only --rotated  # combine both
 
 This repo uses two separate environment managers, each handling what it does best:
 
-| | uv (`.venv/`) | conda (`ros2`) |
+| | uv (root `.venv/` + `Part_2/.venv/`) | conda (`ros2`) |
 | - | ------------- | -------------- |
-| **Used for** | Part 2, Part 3, plotter | Part 1 - Assignment 3 |
+| **Used for** | Part 3, plotter (root) / Part 2 (isolated) | Part 1 - Assignment 3 |
 | **Package source** | PyPI | conda-forge / RoboStack |
 | **Why** | Fast, reproducible Python env | ROS 2 packages don't exist on PyPI |
+
+Part 2 lives in its **own isolated uv project** (`Part_2/pyproject.toml`, Python 3.10 with
+`numpy==1.22.1`) because the `gtsam` pybind bindings require those exact ABI-compatible versions —
+see [Part_2/README.md](Part_2/README.md).
 
 [Pixi](https://pixi.sh) would unify the two into a single tool (it handles both PyPI and conda-forge), but uv was chosen here for the Python side to experiment with it.
 
@@ -114,13 +117,17 @@ RoboStack is also the only viable way to run ROS 2 natively on macOS ARM: the of
 
 #### Python dependencies (Part 2 & Part 3)
 
-Install [uv](https://docs.astral.sh/uv/getting-started/installation/), then from the repo root:
+Install [uv](https://docs.astral.sh/uv/getting-started/installation/), then:
 
 ```bash
-uv sync
+uv sync                  # root env: Part 3 + plotter
+cd Part_2 && uv sync     # isolated env for Part 2 (Python 3.10, gtsam-compatible pins)
 ```
 
-This creates a `.venv/` with all required packages (`numpy`, `matplotlib`, `opencv-python`, `gtsam`, `open3d`, `tqdm`, `jupyter`, `casadi`) pinned to Python 3.11.
+The root `.venv/` covers Part 3 and the plotter (`numpy`, `matplotlib`, `casadi`, ...). Part 2 has
+its own `.venv/` under `Part_2/` with `numpy==1.22.1`, `opencv-python`, `gtsam`, `open3d`, `jupyter`
+pinned to Python 3.10 for ABI compatibility with the `gtsam` pybind bindings. `run.py 4` launches
+the notebook through `uv run` from `Part_2/`, so the right env is picked up automatically.
 
 #### Part 1 - Assignment 1 & 2 (C++ / PCL)
 

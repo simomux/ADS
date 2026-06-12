@@ -2,6 +2,7 @@
 """ADS Assignment Runner"""
 
 import os
+import shutil
 import subprocess
 import sys
 
@@ -36,9 +37,29 @@ def run(cmd, cwd=None, env=None):
     subprocess.run(cmd, shell=True, cwd=cwd, env=env)
 
 
+def _cmake_cache_is_stale(cache_dir, expected_src):
+    """True if cache_dir holds a CMakeCache.txt generated from a different
+    source path (repo moved/renamed -> the baked absolute paths are dead)."""
+    cache = os.path.join(cache_dir, "CMakeCache.txt")
+    if not os.path.isfile(cache):
+        return False
+    with open(cache) as f:
+        for line in f:
+            if line.startswith("CMAKE_HOME_DIRECTORY:INTERNAL="):
+                recorded = line.split("=", 1)[1].strip()
+                return os.path.realpath(recorded) != os.path.realpath(expected_src)
+    return False
+
+
 def build_cmake(assignment_dir, executable, jobs=None, run_args=""):
     build_dir = os.path.join(assignment_dir, "build")
     exe_path = os.path.join(build_dir, executable)
+
+    # If the repo was moved/renamed, cmake refuses to reuse the old cache:
+    # wipe the build dir and start clean.
+    if _cmake_cache_is_stale(build_dir, assignment_dir):
+        print(f"[INFO] Stale CMake cache (source tree moved) — removing {build_dir}")
+        shutil.rmtree(build_dir)
 
     needs_build = True
     if os.path.isfile(exe_path):
@@ -101,6 +122,16 @@ def part1_assign3(extra_args=""):
         subprocess.run([sys.executable, "plotter.py"] + plotter_args, cwd=assign_dir)
         return
 
+    # If the repo was moved/renamed, the colcon build/install trees hold dead
+    # absolute paths: wipe them and let colcon rebuild from scratch.
+    if _cmake_cache_is_stale(os.path.join(assign_dir, "build", "pf"),
+                             os.path.join(src_dir, "particle")):
+        for d in ("build", "install"):
+            p = os.path.join(assign_dir, d)
+            if os.path.isdir(p):
+                print(f"[INFO] Stale colcon artifacts (source tree moved) — removing {p}")
+                shutil.rmtree(p)
+
     # Build if needed
     needs_build = not os.path.isfile(pf_node)
     if not needs_build:
@@ -148,10 +179,12 @@ def part1_assign3(extra_args=""):
 
 def part2():
     d = os.path.join(ROOT, "Part_2")
-    if not os.path.isfile(os.path.join(d, "ba.ipynb")):
+    if not os.path.isfile(os.path.join(d, "ba_advanced.ipynb")):
         print("Notebook not found.")
         return
-    run("jupyter notebook ba.ipynb", cwd=d)
+    # Part_2 is an isolated uv project (Python 3.10, numpy pinned for gtsam):
+    # `uv run` from its directory picks up Part_2/.venv automatically.
+    run("uv run jupyter notebook ba_advanced.ipynb", cwd=d)
 
 
 def part3(n, extra_args=""):
@@ -172,7 +205,7 @@ MENU = """
 ║    3) Assignment 3 — Particle Filter (ROS2)  ║
 ╠══════════════════════════════════════════════╣
 ║  PART 2 — Visual Odometry (Jupyter)          ║
-║    4) Bundle Adjustment (KITTI)              ║
+║    4) Stereo VO + Sliding-Window BA (EuRoC)  ║
 ╠══════════════════════════════════════════════╣
 ║  PART 3 — Vehicle Control & Planning         ║
 ║    5) Assignment 1 — Vehicle Modeling        ║
