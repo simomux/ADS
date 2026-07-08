@@ -89,8 +89,8 @@ Extra arguments are forwarded to the underlying script:
 
 ```bash
 uv run python run.py 3 --plot-only         # Part 1 Assignment 3 - skip simulation, open plotter directly
-uv run python run.py 3 --rotated           # Part 1 Assignment 3 - overlaid trajectories with RMSE + 90° rotated view
-uv run python run.py 3 --plot-only --rotated  # combine both
+uv run python run.py 3 --overlap           # Part 1 Assignment 3 - overlaid trajectories with RMSE + 90° rotated view
+uv run python run.py 3 --plot-only --overlap  # combine both
 ```
 
 ### Prerequisites
