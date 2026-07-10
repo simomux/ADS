@@ -79,7 +79,17 @@ Time: 165.05 s          # same lap, identical trajectory
 paths after frenet calc: 40
 ```
 
-A significant improvement, maintaining the same performance as the original tracker, but reducing by ~10x the simulation time and the paths computed at each step from 240 to 40.
+A significant improvement, maintaining the same trajectory and tracking performance as the original tracker (`Time: 165.05 s`, identical lap), while cutting the **per-step planner cost by ~10x** (199.58 → 20.56 ms) and the candidate paths from 240 to 40.
+
+It is worth stressing that this collapse is a **computational optimisation, not a feasibility requirement**: the full-horizon configuration above also completes the entire lap with an identical trajectory. The narrower search is used only to fit within the 50 ms real-time budget.
+
+The speedup comes almost entirely from the **time-horizon sampling**, not from the road width. The candidate count factors as `|d| × |T| × |v|`:
+
+- horizons `|T|`: `np.arange(4.5, 5.0, 0.05)` = 10 → `np.arange(2.8, 2.85, 0.05)` = 2 (**~5x**);
+- lateral offsets `|d|`: 12 → 10 (**~1.2x**, negligible);
+- speeds `|v|`: 2 → 2 (unchanged).
+
+This gives 240 → 40 (6x) fewer paths, plus a further ~1.7x from the shorter horizon (fewer points per path), for the ~10x overall.
 
 ### 15 m/s
 
